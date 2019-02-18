@@ -1,7 +1,6 @@
 import os
 import sys
 import click
-from PyInquirer import style_from_dict, Token, prompt, Separator
 from pyfiglet import Figlet
 
 
@@ -29,7 +28,13 @@ CONTEXT_SETTINGS = dict(help_option_names=['--help'])
 class DynamicGroup(click.MultiCommand):
 
     def __init__(self, *args, **kwargs):
+        self.root_check()
         super(DynamicGroup, self).__init__(invoke_without_command=True, *args, **kwargs)
+    
+    def root_check(self):
+        if os.getuid() != 0:
+            print("Must be run as root. Try 'sudo patchbox'")
+            exit() 
 
     def list_commands(self, ctx):
         rv = []
@@ -60,29 +65,6 @@ def cli(ctx, store, verbose):
     """Patchbox OS Configuration Utility."""
     if ctx.invoked_subcommand is None:
         click.echo(Figlet(font='slant').renderText('patchbox'))
-        click.echo('Press Ctrl + C to Exit\n')
-        questions = [
-            {
-                'type': 'list',
-                'name': 'command',
-                'message': 'Choose a command:',
-                'choices': ctx.command.list_commands(ctx),
-            },
-        ]
-
-        answers = prompt(questions)
-        # commands = ctx.command.list_commands(ctx)
-        # options = []
-        # for i, name in enumerate(commands, start=1):
-        #     options.append(i)
-        #     click.echo('{}. {}'.format(i, name))
-        # click.echo()
-        # command_no = None
-        # while command_no not in options:
-        #     command_no = click.prompt('Enter a command number', type=int)
-        # command = ctx.command.get_command(ctx, commands[command_no - 1])
-        command = answers.get('command')
-        if command:
-            click.echo()
-            ctx.invoke(ctx.command.get_command(ctx, command))
-    # click.echo(dir(ctx))
+        click.echo('Available commands:')
+        for command in ctx.command.list_commands(ctx):
+            click.echo(command)
