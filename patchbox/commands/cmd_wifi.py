@@ -4,6 +4,7 @@ import subprocess
 import re
 import click
 import time
+from patchbox import settings, utils
 
 
 def get_ifaces():
@@ -145,6 +146,7 @@ def do_disconnect():
     except:
         raise click.ClickException('Operation failed!')
 
+
 def do_verify_connection():
     MAX_RETRIES = 9
     retries = 0
@@ -154,9 +156,9 @@ def do_verify_connection():
             return
         retries += 1
         time.sleep(2)
-        click.echo('Trying to connect ({}/{}).'.format(retries, MAX_RETRIES), err=True)
+        click.echo(
+            'Trying to connect ({}/{}).'.format(retries, MAX_RETRIES), err=True)
     raise click.ClickException('Connection failed!')
-
 
 
 def do_reconnect():
@@ -226,6 +228,29 @@ def get_ssids():
         raise click.ClickException('Scan failed!')
 
 
+def get_hs_config():
+    items = []
+    with open(settings.HS_CFG, 'r') as f:
+        for line in f:
+            for p in ['ssid', 'wpa_passphrase', 'channel']:
+                if line.startswith(p):
+                    param = line.strip().split('=')
+                    items.append(
+                        {'title': param[0] + ': ' + param[1], 'key': param[0], 'value': param[1]})
+    return items
+
+
+def update_hs_config(param, value):
+    with open(settings.HS_CFG, 'r') as f:
+        data = f.readlines()
+        for i, line in enumerate(data):
+            if line.startswith(param):
+                data[i] = param + '=' + value + '\n'
+                break
+    with open(settings.HS_CFG, 'w') as f:
+        f.writelines(data)
+
+
 @click.group(invoke_without_command=False)
 @click.pass_context
 def cli(ctx):
@@ -258,6 +283,7 @@ def list():
     for iface in get_ifaces():
         click.echo(iface)
 
+
 @cli.command()
 def status():
     """Check WiFi status"""
@@ -286,6 +312,7 @@ def reconnect():
         raise click.ClickException('WiFi network config not found!')
     do_reconnect()
 
+
 @cli.command()
 @click.option('--name', help='WiFi network name (SSID).')
 @click.option('--country', help='WiFi network country code (e.g. US, DE, LT).')
@@ -307,3 +334,44 @@ def connect(name, country, password):
     do_forget_all()
     do_connect(name, password)
     do_reconnect()
+
+
+@cli.group()
+def hotspot():
+    """Manage WiFi hotspot."""
+    pass
+
+
+@hotspot.command('enable')
+def hotspot_enable():
+    """Enable WiFi hotspot"""
+    do_hotspot_enable()
+
+
+def do_hotspot_enable():
+    error = False
+    error, output = utils.run_cmd(['sudo', 'rfkill', 'unblock', 'wifi'])
+    error, output = utils.run_cmd(['sudo', 'ifconfig', 'wlan0', 'down'])
+
+
+@hotspot.command('disable')
+def hotspot_disable():
+    """Disable WiFi hotspot"""
+    pass
+
+
+@hotspot.command('status')
+def hotspot_status():
+    """Check WiFi hotspot status"""
+    for item in get_hs_config():
+        line = '{}={}'.format(item.get('key'), item.get('value'))
+        click.echo(line)
+
+
+@hotspot.command('config')
+@click.option('--name', help='Hotspot name (SSID).')
+@click.option('--channel', help='Hotspot channel (default=6).', default=6, type=int)
+@click.option('--password', help='Hotspot WiFi network password.')
+def hotspot_config(name, channel, password):
+    """Change WiFi hotspot settings"""
+    pass
