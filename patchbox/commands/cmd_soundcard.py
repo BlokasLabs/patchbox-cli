@@ -2,6 +2,7 @@ import subprocess
 import click
 import os
 from os.path import isfile, expanduser
+from patchbox import views
 
 
 def get_cards():
@@ -82,18 +83,30 @@ def status():
     click.echo(get_status())
 
 # @cli.command()
+
+
 def config():
     """Show '.asoundrc' config"""
     with open(expanduser('~' + os.environ['SUDO_USER']) + '/.asoundrc', 'r') as f:
         data = f.readlines()
         for line in data:
-            click.echo(line.rstrip())    
+            click.echo(line.rstrip())
+
+
+def validate_soundcard_name(ctx, param, value):
+    if ctx.params.get('no_input'):
+        return value
+    error, output = views.do_menu('Select Soundcard', *[card.get('title') for card in get_cards()])
+    print(error)
+    print(output)
+    return 'pisound'
 
 
 @cli.command()
-@click.option('--name', help='Soundcard name.')
+@click.option('--no-input', is_flag=True, help='No input mode.')
+@click.option('--name', help='Soundcard name.', callback=validate_soundcard_name)
 @click.pass_context
-def set(ctx, name):
+def set(ctx, no_input, name):
     """Set active system Soundcard"""
     if not is_supported():
         raise click.ClickException('No supported Soundcard found!')

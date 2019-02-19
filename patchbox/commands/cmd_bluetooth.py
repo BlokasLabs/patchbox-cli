@@ -5,7 +5,6 @@ import re
 import click
 
 
-
 def get_system_service_property(name, prop):
     return subprocess.check_output(['systemctl', 'show', '-p', prop, '--value', name]).strip()
 
