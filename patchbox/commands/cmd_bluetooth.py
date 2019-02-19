@@ -54,12 +54,12 @@ def get_status():
 @click.group(invoke_without_command=False)
 @click.pass_context
 def cli(ctx):
-    """Manage Bluetooth."""
+    """Manage Bluetooth"""
 
 
 @cli.command()
 def status():
-    """Check Bluetooth status"""
+    """Display Bluetooth status"""
     click.echo(get_status().strip())
 
 
@@ -78,7 +78,7 @@ def stop():
         raise click.ClickException('Internal Bluetooth device not found!')
     subprocess.call(['/usr/local/pisound/scripts/pisound-btn/system/set_bt_discoverable.sh', 'false'])
 
-@cli.command()
+# @cli.command()
 def list():
     """List internal Bluetooth devices"""
     for dev in get_devices():

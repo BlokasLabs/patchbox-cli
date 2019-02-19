@@ -43,9 +43,9 @@ def get_hostname():
 
 @click.command()
 def cli():
-    """Display system info."""
-    message = 'Button Version: {}'\
-        '\nServer Version: {}\nFirmware Version: {}'\
-        '\nSerial Number: {}\nIP Address: {}'\
+    """Display system info"""
+    message = 'Pisound Button Version: {}'\
+        '\nPisound Server Version: {}\nFirmware Version: {}'\
+        '\nPisound Serial Number: {}\nIP Address: {}'\
         '\nHostname: {}'.format(get_btn_version(), get_ctl_version(), get_version(), get_serial(), get_ip(), get_hostname())
     click.echo(message)

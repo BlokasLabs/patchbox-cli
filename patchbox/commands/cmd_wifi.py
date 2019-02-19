@@ -40,7 +40,8 @@ def get_wifi_countries():
 
 def do_save_config():
     try:
-        cmd = subprocess.Popen(['wpa_cli', '-i', get_default_iface(), 'save_config'], stdout=subprocess.PIPE)
+        cmd = subprocess.Popen(
+            ['wpa_cli', '-i', get_default_iface(), 'save_config'], stdout=subprocess.PIPE)
     except:
         raise click.ClickException('Saving WiFi configuration failed!')
 
@@ -128,7 +129,7 @@ def do_connect(ssid, password):
     do_save_config()
 
 
-def is_supported():
+def is_wifi_supported():
     return get_default_iface() is not None
 
 
@@ -148,7 +149,7 @@ def do_disconnect():
 
 
 def do_verify_connection():
-    MAX_RETRIES = 9
+    MAX_RETRIES = 10
     retries = 0
     while retries < MAX_RETRIES:
         if is_connected():
@@ -157,7 +158,7 @@ def do_verify_connection():
         retries += 1
         time.sleep(2)
         click.echo(
-            'Trying to connect ({}/{}).'.format(retries, MAX_RETRIES), err=True)
+            'Trying to connect to WiFi network ({}/{}).'.format(retries, MAX_RETRIES), err=True)
     raise click.ClickException('Connection failed!')
 
 
@@ -165,6 +166,9 @@ def do_reconnect():
     networks = get_networks()
     if len(networks) < 1:
         raise click.ClickException('WiFi network config not found!')
+    if is_hotspot_active():
+        click.echo('Disabling WiFi hotspot.', err=True)
+        do_hotspot_disable(reconnect=False)
     try:
         subprocess.check_output(['wpa_cli', 'reconnect'])
     except:
@@ -202,11 +206,12 @@ def get_wpa_status():
 
 
 def get_status():
-    return 'wifi_supported={}\ndefault_iface={}\nwifi_disabled={}\nwifi_connected={}\nwifi_country={}\n{}'.format(
-        int(is_supported()),
+    return 'wifi_supported={}\ndefault_iface={}\nwifi_disabled={}\nwifi_connected={}\nhotspot_active={}\nwifi_country={}\n{}'.format(
+        int(is_wifi_supported()),
         get_default_iface(),
         int(is_disabled()),
         int(is_connected()),
+        int(is_hotspot_active()),
         get_wifi_country(),
         get_wpa_status()
     )
@@ -254,18 +259,18 @@ def update_hs_config(param, value):
 @click.group(invoke_without_command=False)
 @click.pass_context
 def cli(ctx):
-    """Manage WiFi."""
+    """Manage WiFi"""
 
 
-@cli.command()
+# @cli.command()
 def enable():
     """Enable WiFi interface"""
-    if not is_supported():
+    if not is_wifi_supported():
         raise click.ClickException('WiFi interface not found!')
     do_enable()
 
 
-@cli.command()
+# @cli.command()
 def disable():
     """Disable WiFi interface"""
     do_disable()
@@ -277,7 +282,7 @@ def disconnect():
     do_disconnect()
 
 
-@cli.command()
+# @cli.command()
 def list():
     """List WiFi interfaces"""
     for iface in get_ifaces():
@@ -286,8 +291,8 @@ def list():
 
 @cli.command()
 def status():
-    """Check WiFi status"""
-    if not is_supported():
+    """Display WiFi status"""
+    if not is_wifi_supported():
         raise click.ClickException('WiFi interface not found!')
     click.echo(get_status())
 
@@ -295,7 +300,7 @@ def status():
 @cli.command()
 def scan():
     """List available WiFi networks"""
-    if not is_supported():
+    if not is_wifi_supported():
         raise click.ClickException('WiFi interface not found!')
     if is_disabled():
         do_enable()
@@ -319,7 +324,7 @@ def reconnect():
 @click.option('--password', help='WiFi network password (Don\'t use for unsecure networks).')
 def connect(name, country, password):
     """Connect to WiFi network"""
-    if not is_supported():
+    if not is_wifi_supported():
         raise click.ClickException('WiFi interface not found!')
     if is_disabled():
         do_enable()
@@ -338,31 +343,54 @@ def connect(name, country, password):
 
 @cli.group()
 def hotspot():
-    """Manage WiFi hotspot."""
+    """Manage WiFi hotspot"""
     pass
 
 
-@hotspot.command('enable')
+def is_hotspot_active():
+    error, output = utils.run_cmd(['pgrep', '-x', 'hostapd'])
+    if error:
+        return False
+    return True
+
+
+@hotspot.command('up')
 def hotspot_enable():
     """Enable WiFi hotspot"""
     do_hotspot_enable()
 
 
 def do_hotspot_enable():
-    error = False
-    error, output = utils.run_cmd(['sudo', 'rfkill', 'unblock', 'wifi'])
-    error, output = utils.run_cmd(['sudo', 'ifconfig', 'wlan0', 'down'])
+    error, output = utils.run_cmd(
+        ['sudo', 'sh', '-c', settings.BTN_SCRIPTS_DIR + '/enable_wifi_hotspot.sh'])
+    if not error:
+        click.echo('Hotspot enabled.', err=True)
 
 
-@hotspot.command('disable')
+def do_hotspot_disable(reconnect=True):
+    error, output = utils.run_cmd(
+        ['sudo', 'sh', '-c', settings.BTN_SCRIPTS_DIR + '/disable_wifi_hotspot.sh'])
+    if not error:
+        click.echo('Hotspot disabled.', err=True)
+    if reconnect:
+        try:
+            do_reconnect()
+        except:
+            click.echo('Failed to connect to default WiFi network.', err=True)
+            pass
+
+
+@hotspot.command('down')
 def hotspot_disable():
     """Disable WiFi hotspot"""
-    pass
+    do_hotspot_disable()
 
 
 @hotspot.command('status')
 def hotspot_status():
-    """Check WiFi hotspot status"""
+    """Display WiFi hotspot status"""
+    active = is_hotspot_active()
+    click.echo('hotspot_active={}'.format(int(active)))
     for item in get_hs_config():
         line = '{}={}'.format(item.get('key'), item.get('value'))
         click.echo(line)

@@ -93,17 +93,19 @@ def is_supported():
 
 
 def get_status():
-    status = 'installed={}'.format(int(is_supported()))
+    status = 'pisound_btn_installed={}'.format(int(is_supported()))
     version = get_btn_version()
     if version:
-        status += '\nversion={}'.format(version)
+        status += '\npisound_btn_version={}'.format(version)
+        for option in get_btn_config():
+            status += '\n' + option.get('key', 'UNKNOWN') + '=' + option.get('path', 'unknown')
     return status
 
 
 @click.group(invoke_without_command=False)
 @click.pass_context
 def cli(ctx):
-    """Manage Pisound Button."""
+    """Manage Pisound Button"""
 
 
 @cli.command()
@@ -117,7 +119,9 @@ def interactions():
 
 @cli.command()
 def status():
-    """Button status"""
+    """Display Button status"""
+    if not is_supported():
+        raise click.ClickException('Button software not found!')
     click.echo(get_status())
 
 
@@ -133,21 +137,11 @@ def actions():
 
 
 @cli.command()
-def config():
-    """Display Button config"""
-    if not is_supported():
-        raise click.ClickException('Button software not found!')
-    for option in get_btn_config():
-        line = option.get('key', 'UNKNOWN') + ': ' + option.get('path', 'unknown')
-        click.echo(line)
-
-
-@cli.command()
 @click.option('--interaction', help='Button interaction.')
 @click.option('--actions', help='Button action.')
 @click.pass_context
 def assign(ctx, interaction, actions):
-    """Assign different Button interaction to different actions. Yes, it does sound funny."""
+    """Assign different Button interaction to different actions"""
     if not is_supported():
         raise click.ClickException('Button software not found!')
     prepare_btn_config()

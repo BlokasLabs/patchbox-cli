@@ -45,7 +45,7 @@ def set_active_card(card):
                     str(card['current']), str(card['key']))
     with open(expanduser('~' + os.environ['SUDO_USER']) + '/.asoundrc', 'w') as f:
         f.writelines(data)
-        click.echo('Active soundcard set.', err=True)
+        click.echo('Active Soundcard set.', err=True)
 
 
 def is_supported():
@@ -57,31 +57,31 @@ def is_supported():
 def get_status():
     active_card = get_active_card()
     if active_card.get('title'):
-        return 'active_soundcard={}'.format(active_card.get('title'))
-    return 'active_soundcard=none'
+        return 'active_system_soundcard={}'.format(active_card.get('title'))
+    return 'active_system_soundcard=none'
 
 
 @click.group(invoke_without_command=False)
 @click.pass_context
 def cli(ctx):
-    """Manage Soundcards."""
+    """Manage Soundcards"""
 
 
 @cli.command()
 def list():
-    """List available system soundcards"""
+    """List available system Soundcards"""
     if not is_supported():
-        raise click.ClickException('No supported soundcard found!')
+        raise click.ClickException('No supported Soundcard found!')
     for card in get_cards():
         click.echo(card.get('title'))
 
 
 @cli.command()
 def status():
-    """Show active soundcard"""
+    """Show active system Soundcard"""
     click.echo(get_status())
 
-@cli.command()
+# @cli.command()
 def config():
     """Show '.asoundrc' config"""
     with open(expanduser('~' + os.environ['SUDO_USER']) + '/.asoundrc', 'r') as f:
@@ -94,9 +94,9 @@ def config():
 @click.option('--name', help='Soundcard name.')
 @click.pass_context
 def set(ctx, name):
-    """Set active soundcard"""
+    """Set active system Soundcard"""
     if not is_supported():
-        raise click.ClickException('No supported soundcard found!')
+        raise click.ClickException('No supported Soundcard found!')
     if not name:
         raise click.ClickException(
             'Soundcard name not provided! Use --name SOUNDCARD_NAME option.')

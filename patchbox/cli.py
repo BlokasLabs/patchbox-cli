@@ -62,7 +62,7 @@ class DynamicGroup(click.MultiCommand):
 @click.pass_context
 @click.version_option()
 def cli(ctx, store, verbose):
-    """Patchbox OS Configuration Utility."""
+    """Patchbox Configuration Utility"""
     if ctx.invoked_subcommand is None:
         click.echo(Figlet(font='slant').renderText('patchbox'))
         click.echo('Available commands:')
