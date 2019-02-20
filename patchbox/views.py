@@ -7,7 +7,7 @@ class DialogExit(Exception):
 
 
 class DialogDisplay:
-    palette_original = [
+    palette = [
         ('body', 'black', 'light gray', 'standout'),
         ('border', 'black', 'dark blue'),
         ('shadow', 'white', 'black'),
@@ -16,7 +16,7 @@ class DialogDisplay:
         ('focustext', 'light gray', 'dark blue'),
     ]
 
-    palette = [
+    palette_blok = [
         ('body','white','black'),
         ('focustext', 'black','yellow'),
         ('field', 'white', 'dark gray'),
@@ -106,23 +106,15 @@ class InputDialogDisplay(DialogDisplay):
 
 
 class ListDialogDisplay(DialogDisplay):
-    def __init__(self, text, constr, items, has_default):
-        j = []
-        if has_default:
-            k, tail = 3, ()
-        else:
-            k, tail = 2, ("no",)
-        while items:
-            j.append(items[:k] + tail)
-            items = items[k:]
-
+    def __init__(self, text, constr, items, has_default=False):
         l = []
         self.items = []
-        for tag, item, default in j:
-            w = constr(tag, default == "on")
+        for item in items:
+            w = constr(item.get('value'), has_default == "on")
             self.items.append(w)
-            w = urwid.Columns([('fixed', 12, w),
-                               urwid.Text(item)], 2)
+            if item.get('description'):
+                w = urwid.Columns([('fixed', 12, w),
+                                urwid.Text(item.get('description'))], 2)
             w = urwid.AttrWrap(w, 'selectable', 'focus')
             l.append(w)
 
@@ -142,6 +134,8 @@ class ListDialogDisplay(DialogDisplay):
             self.frame.set_focus('footer')
             self.buttons.set_focus(0)
             # self.view.keypress(size, k)
+        if k == 'esc':
+            sys.exit()
 
     def on_exit(self, exitcode):
         """Print the tag of the item selected."""
@@ -214,7 +208,7 @@ def do_inputbox(text):
     return d.main()
 
 
-def do_menu(text, *items):
+def do_menu(text, items):
     def constr(tag, state):
         return MenuItem(tag)
     d = ListDialogDisplay(text, constr, items, False)

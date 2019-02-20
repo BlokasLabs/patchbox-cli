@@ -2,7 +2,7 @@ import subprocess
 import click
 import os
 from os.path import isfile, expanduser
-from patchbox import views
+from patchbox.utils import do_group_root, ensure_param
 
 
 def get_cards():
@@ -12,7 +12,7 @@ def get_cards():
             if ']:' in line:
                 card_id = line.split('[')[0].strip()
                 card_name = line.split(':')[1].split('-')[0].strip()
-                cards.append({'key': card_id, 'title': card_name})
+                cards.append({'key': card_id, 'value': card_name})
     return cards
 
 
@@ -31,7 +31,7 @@ def get_active_card():
 
     for card in get_cards():
         if card['key'] == active_card['key']:
-            active_card['title'] = card['title']
+            active_card['value'] = card['value']
             break
 
     return(active_card)
@@ -57,16 +57,17 @@ def is_supported():
 
 def get_status():
     active_card = get_active_card()
-    if active_card.get('title'):
-        return 'active_system_soundcard={}'.format(active_card.get('title'))
+    if active_card.get('value'):
+        return 'active_system_soundcard={}'.format(active_card.get('value'))
     return 'active_system_soundcard=none'
 
 
-@click.group(invoke_without_command=False)
+@click.group(invoke_without_command=True)
 @click.pass_context
 def cli(ctx):
     """Manage Soundcards"""
-
+    do_group_root(ctx)
+    
 
 @cli.command()
 def list():
@@ -74,7 +75,7 @@ def list():
     if not is_supported():
         raise click.ClickException('No supported Soundcard found!')
     for card in get_cards():
-        click.echo(card.get('title'))
+        click.echo(card.get('value'))
 
 
 @cli.command()
@@ -82,43 +83,18 @@ def status():
     """Show active system Soundcard"""
     click.echo(get_status())
 
-# @cli.command()
-
-
-def config():
-    """Show '.asoundrc' config"""
-    with open(expanduser('~' + os.environ['SUDO_USER']) + '/.asoundrc', 'r') as f:
-        data = f.readlines()
-        for line in data:
-            click.echo(line.rstrip())
-
-
-def validate_soundcard_name(ctx, param, value):
-    if ctx.params.get('no_input'):
-        return value
-    error, output = views.do_menu('Select Soundcard', *[card.get('title') for card in get_cards()])
-    print(error)
-    print(output)
-    return 'pisound'
-
 
 @cli.command()
-@click.option('--no-input', is_flag=True, help='No input mode.')
-@click.option('--name', help='Soundcard name.', callback=validate_soundcard_name)
+@click.option('--name', help='Soundcard name.')
 @click.pass_context
-def set(ctx, no_input, name):
+def set(ctx, name):
     """Set active system Soundcard"""
     if not is_supported():
         raise click.ClickException('No supported Soundcard found!')
-    if not name:
-        raise click.ClickException(
-            'Soundcard name not provided! Use --name SOUNDCARD_NAME option.')
     cards = get_cards()
-    selected_card = None
-    for card in cards:
-        if card.get('title') == name:
-            selected_card = card
-    if not selected_card:
+    options = [card.get('value') for card in cards]
+    name = ensure_param(ctx, name, required=True, options=cards, required_message='Soundcard name not provided! Use --name SOUNDCARD_NAME option.')
+    if not name:
         raise click.ClickException('Soundcard not found!')
     active_card = get_active_card()
     if active_card:

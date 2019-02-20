@@ -3,6 +3,7 @@ import glob
 import subprocess
 import re
 import click
+from patchbox.utils import do_group_root
 
 
 def get_system_service_property(name, prop):
@@ -50,10 +51,12 @@ def get_status():
     return results
 
 
-@click.group(invoke_without_command=False)
+@click.group(invoke_without_command=True)
+@click.option('--no-input', is_flag=True, default=False, help='No input mode.')
 @click.pass_context
-def cli(ctx):
+def cli(ctx, no_input):
     """Manage Bluetooth"""
+    do_group_root(ctx)
 
 
 @cli.command()
