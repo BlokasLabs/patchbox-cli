@@ -1,8 +1,135 @@
+import sys
 import subprocess
-import click
 import os
 from os.path import isfile
+from inspect import isfunction
+import click
 from patchbox import views
+
+
+class PatchboxChoice(click.ParamType):
+    """Dictionary support for click.Choice"""
+
+    name = 'choice'
+
+    def __init__(self, choices, case_sensitive=True):
+        self.type = list
+        self.choices = choices
+        self.case_sensitive = case_sensitive
+        if self.choices:
+            if isfunction(self.choices):
+                self.type = 'callback'
+            elif isinstance(self.choices[0], dict):
+                self.type = dict
+
+    def get_metavar(self, param):
+        if self.type == dict:
+            return '[%s]' % '|'.join([c.get('value') for c in self.choices])
+        return '[%s]' % '|'.join(self.choices)
+
+    def get_missing_message(self, param):
+        if isfunction(self.choices):
+            return ''
+        if self.choices:
+            message = 'Choose from:\n\t'
+            for choice in self.choices:
+                if isinstance(choice, str):
+                    message += '{}\n\t'.format(choice)
+                if isinstance(choice, dict):
+                    value = choice.get('value')
+                    if value:
+                        message += '{}\n\t'.format(value)
+            return message.rstrip()
+        return 'No choices found.'
+    
+    def get_choices(self):
+        if self.type == 'callback':
+            return self.choices()
+        return self.choices
+
+    def convert(self, value, param, ctx):
+        # Exact match
+        if self.type == 'callback':
+            choices = self.choices()
+        else:
+            choices = self.choices
+
+        if self.type == dict:
+            for c in choices:
+                if c.get('value') == value:
+                    return c
+                    
+        if self.type == list:
+            if value in choices:
+                return value
+
+        # Match through normalization and case sensitivity
+        # first do token_normalize_func, then lowercase
+        # preserve original `value` to produce an accurate message in
+        # `self.fail`
+        normed_value = value
+        normed_choices = choices
+
+        if ctx is not None and \
+           ctx.token_normalize_func is not None:
+            normed_value = ctx.token_normalize_func(value)
+            normed_choices = [ctx.token_normalize_func(choice) for choice in
+                              choices]
+
+        if not self.case_sensitive:
+            normed_value = normed_value.lower()
+            normed_choices = [choice.lower() for choice in normed_choices]
+
+        if normed_value in normed_choices:
+            return normed_value
+
+        if self.type == list:
+            self.fail('invalid choice: %s. (choose from %s)' % (value, ', '.join(choices)), param, ctx)
+
+        if self.type == dict:
+            self.fail('invalid choice: %s. (choose from %s)' % (value, ', '.join(c.get('value') for c in choices)), param, ctx)
+
+    def __repr__(self):
+        if self.type == 'callback':
+            return 'PatchboxChoice(%r)' % self.choices
+        return 'PatchboxChoice(%r)' % list(self.choices or [c.get('value') for c in self.choices])
+
+
+cmd_folder = os.path.abspath(os.path.join(
+    os.path.dirname(__file__), 'commands'))
+
+
+class PatchboxHomeGroup(click.MultiCommand):
+
+    def __init__(self, *args, **kwargs):
+        self.root_check()
+        self.is_home = True
+        super(PatchboxHomeGroup, self).__init__(
+            invoke_without_command=True, *args, **kwargs)
+
+    def root_check(self):
+        if os.getuid() != 0:
+            click.echo("Must be run as root. Try 'sudo patchbox'")
+            sys.exit()
+
+    def list_commands(self, ctx):
+        rv = []
+        for filename in os.listdir(cmd_folder):
+            if filename.endswith('.py') and \
+               filename.startswith('cmd_'):
+                rv.append(filename[4:-3])
+        rv.sort()
+        return rv
+
+    def get_command(self, ctx, name):
+        try:
+            if sys.version_info[0] == 2:
+                name = name.encode('ascii', 'replace')
+            mod = __import__('patchbox.commands.cmd_' + name,
+                             None, None, ['cli'])
+        except ImportError:
+            return
+        return mod.cli
 
 
 def run_cmd(list, silent=True):
@@ -38,31 +165,98 @@ def write_file(path, content, silent=True):
         click.echo(e, err=True)
         return True
 
+from pprint import pprint
 
-def ensure_param(ctx, value, required=False, required_message='', options=[]):
-    if not ctx.meta.get('show_ui', False):
-        if value is None:
-            raise click.ClickException()
-        return value
-    close, output = views.do_menu(ctx.command.short_help, options)
-    if close:
-        ctx.exit()
-    return output
-    
+def show_parent_menu_or_exit(ctx):
+    context = ctx
+    while context.parent is not None:
+        if isinstance(context.parent.command, PatchboxHomeGroup):
+            if ctx.command != context.parent.command:
+                ctx.invoke(context.parent.command)
+        context = context.parent
+    ctx.exit()
 
 
-def do_group_root(ctx):
+def do_group_menu(ctx, cancel=None, ok=None):
     if ctx.invoked_subcommand is None:
-        if ctx.meta.get('show_ui', False):
+        if ctx.meta.get('interactive', False):
             options = []
             commands = ctx.command.list_commands(ctx)
             for command in commands:
-                options.append({'key': command, 'value': command, 'description': ctx.command.get_command(ctx, command).__doc__})
-            close, output = views.do_menu(ctx.command.short_help, options)
+                options.append({'key': command, 'value': command,
+                                'description': ctx.command.get_command(ctx, command).__doc__})
+            if not cancel and ctx.parent:
+                cancel = 'Back'
+            close, output = views.do_menu(ctx.command.short_help, options, ok=ok, cancel=cancel)
             if close:
-                ctx.exit()
+                show_parent_menu_or_exit(ctx)
             if output:
-                # ctx.command.get_command(ctx, output)() for direct exec (main context gets lost) todo: how to merge context meta?
-                ctx.invoke(ctx.command.get_command(ctx, output))
+                cmd = None
+                if isinstance(output, dict):
+                    cmd = output.get('value')
+                if isinstance(output, str):
+                    cmd = output
+                ctx.invoke(ctx.command.get_command(ctx, cmd))
         else:
             click.echo(ctx.command.get_help(ctx))
+
+# todo: apvalyti
+def do_ensure_param(ctx, name):
+    param = None
+    close = None
+    value = ctx.params.get(name) 
+
+    if value:
+        return value
+
+    for p in ctx.command.params:
+        if p.name == name:
+            param = p
+            break
+
+    if not param:
+        raise click.ClickException(
+            '"{}" parameter is not registered via function decorator.'.format(name))
+
+    message = '{}'.format(ctx.command.short_help)
+    if param.help:
+        message += '\n{}'.format(param.help)
+
+    value = param.get_default(ctx)
+    if value:
+        return value
+
+    if not ctx.meta.get('interactive', False):
+        return value
+
+    if isinstance(param.type, click.Choice):
+        # todo: param help text add to cmd short help
+        close, value = views.do_menu(message, param.type.get_choices(), cancel='Cancel')
+        if param.type == dict:
+            for option in param.choices:
+                if option.get('value') == value:
+                    value = option
+    
+    if isinstance(param.type, click.types.StringParamType):
+        close, value = views.do_inputbox(message)
+
+    if close:
+        show_parent_menu_or_exit(ctx)
+
+    return value
+
+
+def do_go_back(ctx=None):
+    def go_back():
+        ctx = click.get_current_context()
+        if ctx.meta.get('interactive'):
+            click.echo("\nPress any key to continue...", err=True)
+            click.getchar()
+            click.clear()
+            if ctx.parent:
+                ctx.invoke(ctx.parent.command)
+    
+    if not ctx:
+        ctx = click.get_current_context()
+    if ctx.meta.get('interactive'):
+        ctx.call_on_close(go_back)

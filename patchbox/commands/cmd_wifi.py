@@ -5,6 +5,7 @@ import re
 import click
 import time
 from patchbox import settings, utils
+from patchbox.utils import do_group_menu, do_ensure_param, do_go_back
 
 
 def get_ifaces():
@@ -142,7 +143,7 @@ def is_connected():
 
 def do_disconnect():
     try:
-        subprocess.check_output(['wpa_cli', 'disconnect'])
+        click.echo(subprocess.check_output(['wpa_cli', 'disconnect']), err=True)
         click.echo('Disconnected.', err=True)
     except:
         raise click.ClickException('Operation failed!')
@@ -225,6 +226,7 @@ def get_config():
 
 
 def get_ssids():
+    click.echo('Network scan started.', err=True)
     try:
         scan = subprocess.check_output(
             ['sudo', 'iwlist', get_default_iface(), 'scan'])
@@ -256,10 +258,11 @@ def update_hs_config(param, value):
         f.writelines(data)
 
 
-@click.group(invoke_without_command=False)
+@click.group(invoke_without_command=True)
 @click.pass_context
 def cli(ctx):
     """Manage WiFi"""
+    do_group_menu(ctx)
 
 
 # @cli.command()
@@ -268,18 +271,21 @@ def enable():
     if not is_wifi_supported():
         raise click.ClickException('WiFi interface not found!')
     do_enable()
+    do_go_back()
 
 
 # @cli.command()
 def disable():
     """Disable WiFi interface"""
     do_disable()
+    do_go_back()
 
 
 @cli.command()
 def disconnect():
     """Disconnect from default network"""
     do_disconnect()
+    do_go_back()
 
 
 # @cli.command()
@@ -287,6 +293,7 @@ def list():
     """List WiFi interfaces"""
     for iface in get_ifaces():
         click.echo(iface)
+    do_go_back()
 
 
 @cli.command()
@@ -295,6 +302,7 @@ def status():
     if not is_wifi_supported():
         raise click.ClickException('WiFi interface not found!')
     click.echo(get_status())
+    do_go_back()
 
 
 @cli.command()
@@ -307,6 +315,7 @@ def scan():
     ssids = get_ssids()
     for ssid in ssids:
         click.echo(ssid)
+    do_go_back()
 
 
 @cli.command()
@@ -316,18 +325,22 @@ def reconnect():
     if len(networks) < 1:
         raise click.ClickException('WiFi network config not found!')
     do_reconnect()
+    do_go_back()
 
 
 @cli.command()
-@click.option('--name', help='WiFi network name (SSID).')
-@click.option('--country', help='WiFi network country code (e.g. US, DE, LT).')
-@click.option('--password', help='WiFi network password (Don\'t use for unsecure networks).')
-def connect(name, country, password):
+@click.pass_context
+@click.option('--name', help='WiFi network name (SSID)', required=True, type=click.Choice(get_ssids))
+@click.option('--country', help='WiFi network country code (e.g. US, DE, LT)', default=get_wifi_country())
+@click.option('--password', help='WiFi network password (Leave empty for unsecure networks)')
+def connect(ctx, name, country, password):
     """Connect to WiFi network"""
     if not is_wifi_supported():
         raise click.ClickException('WiFi interface not found!')
     if is_disabled():
         do_enable()
+    name = do_ensure_param(ctx, 'name')
+    password = do_ensure_param(ctx, 'password')
     if country:
         set_wifi_country(country)
     if not country and get_wifi_country() == 'unset':
@@ -339,12 +352,14 @@ def connect(name, country, password):
     do_forget_all()
     do_connect(name, password)
     do_reconnect()
+    do_go_back(ctx)
 
 
-@cli.group()
-def hotspot():
+@cli.group(invoke_without_command=True)
+@click.pass_context
+def hotspot(ctx):
     """Manage WiFi hotspot"""
-    pass
+    do_group_menu(ctx)
 
 
 def is_hotspot_active():
@@ -358,6 +373,7 @@ def is_hotspot_active():
 def hotspot_enable():
     """Enable WiFi hotspot"""
     do_hotspot_enable()
+    do_go_back()
 
 
 def do_hotspot_enable():
@@ -384,6 +400,7 @@ def do_hotspot_disable(reconnect=True):
 def hotspot_disable():
     """Disable WiFi hotspot"""
     do_hotspot_disable()
+    do_go_back()
 
 
 @hotspot.command('status')
@@ -394,6 +411,7 @@ def hotspot_status():
     for item in get_hs_config():
         line = '{}={}'.format(item.get('key'), item.get('value'))
         click.echo(line)
+    do_go_back()
 
 
 @hotspot.command('config')

@@ -3,6 +3,7 @@ import click
 import os
 from os.path import isfile, join, expanduser
 from patchbox import settings
+from patchbox.utils import do_group_menu, do_ensure_param
 
 INTERACTIONS = ['CLICK_1', 'CLICK_2', 'CLICK_3', 
         'CLICK_OTHER', 'HOLD_1S', 'HOLD_3S', 'HOLD_5S', 'HOLD_OTHER', 'CLICK_COUNT_LIMIT']
@@ -102,10 +103,11 @@ def get_status():
     return status
 
 
-@click.group(invoke_without_command=False)
+@click.group(invoke_without_command=True)
 @click.pass_context
 def cli(ctx):
     """Manage Pisound Button"""
+    do_group_menu(ctx)
 
 
 @cli.command()

@@ -7,7 +7,7 @@ class DialogExit(Exception):
 
 
 class DialogDisplay:
-    palette = [
+    palette_org = [
         ('body', 'black', 'light gray', 'standout'),
         ('border', 'black', 'dark blue'),
         ('shadow', 'white', 'black'),
@@ -16,7 +16,7 @@ class DialogDisplay:
         ('focustext', 'light gray', 'dark blue'),
     ]
 
-    palette_blok = [
+    palette = [
         ('body','white','black'),
         ('focustext', 'black','yellow'),
         ('field', 'white', 'dark gray'),
@@ -110,9 +110,9 @@ class ListDialogDisplay(DialogDisplay):
         l = []
         self.items = []
         for item in items:
-            w = constr(item.get('value'), has_default == "on")
+            w = constr(item)
             self.items.append(w)
-            if item.get('description'):
+            if isinstance(item, dict) and item.get('description'):
                 w = urwid.Columns([('fixed', 12, w),
                                 urwid.Text(item.get('description'))], 2)
             w = urwid.AttrWrap(w, 'selectable', 'focus')
@@ -135,7 +135,7 @@ class ListDialogDisplay(DialogDisplay):
             self.buttons.set_focus(0)
             # self.view.keypress(size, k)
         if k == 'esc':
-            sys.exit()
+            raise DialogExit(1)
 
     def on_exit(self, exitcode):
         """Print the tag of the item selected."""
@@ -144,7 +144,7 @@ class ListDialogDisplay(DialogDisplay):
         s = ""
         for i in self.items:
             if i.get_state():
-                s = i.get_label()
+                s = i.item
                 break
         return exitcode, s
 
@@ -167,8 +167,13 @@ class CheckListDialogDisplay(ListDialogDisplay):
 class MenuItem(urwid.Text):
     """A custom widget for the --menu option"""
 
-    def __init__(self, label):
-        urwid.Text.__init__(self, label)
+    def __init__(self, item):
+        self.item = item
+        if isinstance(item, dict):
+            self.label = item.get('value')
+        else:
+            self.label = item
+        urwid.Text.__init__(self, self.label)
         self.state = False
 
     def selectable(self):
@@ -208,11 +213,16 @@ def do_inputbox(text):
     return d.main()
 
 
-def do_menu(text, items):
-    def constr(tag, state):
-        return MenuItem(tag)
+def do_menu(text, items, ok=None, cancel=None):
+    def constr(item):
+        return MenuItem(item)
     d = ListDialogDisplay(text, constr, items, False)
-    d.add_buttons([("OK", 0), ("Cancel", 1)])
+    buttons = []
+    if ok:
+        buttons.append((ok, 0))
+    if cancel:
+        buttons.append((cancel, 1))
+    d.add_buttons(buttons)
     return d.main()
 
 
