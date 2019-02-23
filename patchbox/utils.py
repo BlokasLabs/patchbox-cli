@@ -189,7 +189,7 @@ def do_group_menu(ctx, cancel=None, ok=None):
             if not cancel and ctx.parent:
                 cancel = 'Back'
             close, output = views.do_menu(
-                ctx.command.short_help, options, ok=ok, cancel=cancel)
+                ctx.command.help, options, ok=ok, cancel=cancel)
             if close:
                 go_home_or_exit(ctx)
             if output:
@@ -220,7 +220,7 @@ def do_ensure_param(ctx, name):
         raise click.ClickException(
             '"{}" parameter is not registered via decorator.'.format(name))
 
-    message = '{}'.format(ctx.command.short_help)
+    message = '{}'.format(ctx.command.help)
     if hasattr(param, 'help'):
         message += '\n{}'.format(param.help)
 
@@ -257,3 +257,7 @@ def do_go_back_if_ineractive(ctx=None, silent=False):
             click.getchar()
         if ctx.parent:
             ctx.invoke(ctx.parent.command)
+
+
+def get_system_service_property(name, prop):
+    return subprocess.check_output(['systemctl', 'show', '-p', prop, '--value', name]).strip()
