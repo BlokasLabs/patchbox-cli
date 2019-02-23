@@ -161,5 +161,7 @@ def config(ctx, card, rate, buffer, period):
     period = do_ensure_param(ctx, 'period')
     if period:
         update_jack_config('-n', period)
+    if card or rate or buffer or period:
+        jack_restart()
     do_go_back_if_ineractive(ctx, silent=True)
     

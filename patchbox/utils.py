@@ -5,6 +5,7 @@ from os.path import isfile
 from inspect import isfunction
 import click
 from patchbox import views
+from click.termui import prompt, confirm
 
 
 class PatchboxChoice(click.ParamType):

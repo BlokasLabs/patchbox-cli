@@ -52,9 +52,8 @@ def get_status():
 
 
 @click.group(invoke_without_command=True)
-@click.option('--no-input', is_flag=True, default=False, help='No input mode.')
 @click.pass_context
-def cli(ctx, no_input):
+def cli(ctx):
     """Manage Bluetooth"""
     do_group_menu(ctx)
 

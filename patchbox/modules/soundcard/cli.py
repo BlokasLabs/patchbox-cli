@@ -72,7 +72,6 @@ def cli(ctx):
     do_group_menu(ctx)
 
 
-
 @cli.command()
 def list():
     """List available system Soundcards"""
@@ -99,7 +98,8 @@ def set(ctx, name):
         raise click.ClickException('No supported Soundcard found!')
     selected_card = do_ensure_param(ctx, 'name')
     active_card = get_active_card()
-    if active_card:
-        selected_card['current'] = active_card.get('key')
-    set_active_card(selected_card)
+    if selected_card:
+        if active_card:
+            selected_card['current'] = active_card.get('key')
+        set_active_card(selected_card)
     do_go_back_if_ineractive(ctx)
