@@ -1,6 +1,6 @@
 import click
 import subprocess
-from patchbox.utils import do_go_back
+from patchbox.utils import do_go_back_if_ineractive
 
 
 def get_serial():
@@ -58,4 +58,4 @@ def cli():
         '\nHostname: {}'.format(get_btn_version(), get_ctl_version(
         ), get_version(), get_serial(), get_ip(), get_hostname())
     click.echo(message)
-    do_go_back()
+    do_go_back_if_ineractive()

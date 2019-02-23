@@ -3,10 +3,13 @@ import click
 import os
 from os.path import isfile, join, expanduser
 from patchbox import settings
-from patchbox.utils import do_group_menu, do_ensure_param
+from patchbox.utils import do_group_menu, do_ensure_param, do_go_back_if_ineractive
 
 INTERACTIONS = ['CLICK_1', 'CLICK_2', 'CLICK_3', 
         'CLICK_OTHER', 'HOLD_1S', 'HOLD_3S', 'HOLD_5S', 'HOLD_OTHER', 'CLICK_COUNT_LIMIT']
+    
+def get_interactions():
+    return INTERACTIONS[:-1]
 
 def prepare_btn_config():
     keys = INTERACTIONS
@@ -117,6 +120,7 @@ def interactions():
         raise click.ClickException('Button software not found!')
     for interaction in INTERACTIONS:
         click.echo(interaction)
+    do_go_back_if_ineractive()
 
 
 @cli.command()
@@ -125,6 +129,7 @@ def status():
     if not is_supported():
         raise click.ClickException('Button software not found!')
     click.echo(get_status())
+    do_go_back_if_ineractive()
 
 
 @cli.command()
@@ -136,24 +141,26 @@ def actions():
         path = action.get('value')
         if path:
             click.echo(path)
+    do_go_back_if_ineractive()
 
 
 @cli.command()
-@click.option('--interaction', help='Button interaction.')
-@click.option('--actions', help='Button action.')
+@click.option('--interaction', help='Button interaction', type=click.Choice(get_interactions))
+@click.option('--action', help='Button action', type=click.Choice(get_btn_scripts))
 @click.pass_context
-def assign(ctx, interaction, actions):
+def assign(ctx, interaction, action):
     """Assign different Button interaction to different actions"""
     if not is_supported():
         raise click.ClickException('Button software not found!')
     prepare_btn_config()
+    interaction = do_ensure_param(ctx, 'interaction')
+    action = do_ensure_param(ctx, 'action')
     if not interaction:
         raise click.ClickException(
             'Button interaction not provided! Use --interaction INTERACTION option.')
     if not actions:
         raise click.ClickException(
             'Button action not provided! Use --action ACTION option.')
-    if interaction != 'CLICK_COUNT_LIMIT' and not isfile(action):
-        raise click.ClickException('Button action script not found!')
-    update_btn_config(interaction, action)
+    update_btn_config(interaction, action.get('value'))
+    do_go_back_if_ineractive(ctx, silent=True)
     

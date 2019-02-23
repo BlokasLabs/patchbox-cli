@@ -170,7 +170,12 @@ class MenuItem(urwid.Text):
     def __init__(self, item):
         self.item = item
         if isinstance(item, dict):
-            self.label = item.get('value')
+            if item.get('title'):
+                self.label = item.get('title')
+            elif item.get('value'):
+                self.label = item.get('value')
+            else:
+                self.label = 'UNKNOWN'
         else:
             self.label = item
         urwid.Text.__init__(self, self.label)

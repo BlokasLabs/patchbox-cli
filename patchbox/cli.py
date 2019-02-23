@@ -1,5 +1,5 @@
 import click
-from patchbox.utils import PatchboxHomeGroup, PatchboxChoice, do_group_menu, do_go_back
+from patchbox.utils import PatchboxHomeGroup, PatchboxChoice, do_group_menu
 
 click.Choice = PatchboxChoice
 

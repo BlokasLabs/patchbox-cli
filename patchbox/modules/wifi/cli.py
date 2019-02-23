@@ -4,8 +4,8 @@ import subprocess
 import re
 import click
 import time
-from patchbox import settings, utils
-from patchbox.utils import do_group_menu, do_ensure_param, do_go_back
+from patchbox import settings
+from patchbox.utils import run_cmd, do_group_menu, do_ensure_param, do_go_back_if_ineractive
 
 
 def get_ifaces():
@@ -28,13 +28,13 @@ def get_wifi_country():
 
 def get_wifi_countries():
     try:
-        codes = []
+        countries = []
         with open('/usr/share/zoneinfo/iso3166.tab', 'r') as f:
             for line in f.readlines():
                 if line.startswith('#'):
                     continue
-                codes.append(line[:2])
-        return codes
+                countries.append({'value': line[:2], 'description': line[3:].strip()})
+        return countries
     except:
         raise click.ClickException('WiFi countries file is missing!')
 
@@ -48,7 +48,9 @@ def do_save_config():
 
 
 def set_wifi_country(country):
-    if not country or country.upper() not in get_wifi_countries():
+    if isinstance(country, dict):
+        country = country.get('value')
+    if not country or country.upper() not in [c.get('value') for c in get_wifi_countries()]:
         raise click.ClickException('Country code is not valid!')
     try:
         cmd = subprocess.Popen(['wpa_cli', '-i', get_default_iface(),
@@ -271,21 +273,21 @@ def enable():
     if not is_wifi_supported():
         raise click.ClickException('WiFi interface not found!')
     do_enable()
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 # @cli.command()
 def disable():
     """Disable WiFi interface"""
     do_disable()
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 @cli.command()
 def disconnect():
     """Disconnect from default network"""
     do_disconnect()
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 # @cli.command()
@@ -293,7 +295,7 @@ def list():
     """List WiFi interfaces"""
     for iface in get_ifaces():
         click.echo(iface)
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 @cli.command()
@@ -302,7 +304,7 @@ def status():
     if not is_wifi_supported():
         raise click.ClickException('WiFi interface not found!')
     click.echo(get_status())
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 @cli.command()
@@ -315,7 +317,7 @@ def scan():
     ssids = get_ssids()
     for ssid in ssids:
         click.echo(ssid)
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 @cli.command()
@@ -325,13 +327,13 @@ def reconnect():
     if len(networks) < 1:
         raise click.ClickException('WiFi network config not found!')
     do_reconnect()
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 @cli.command()
 @click.pass_context
 @click.option('--name', help='WiFi network name (SSID)', required=True, type=click.Choice(get_ssids))
-@click.option('--country', help='WiFi network country code (e.g. US, DE, LT)', default=get_wifi_country())
+@click.option('--country', help='WiFi network country code (e.g. US, DE, LT)', type=click.Choice(get_wifi_countries()))
 @click.option('--password', help='WiFi network password (Leave empty for unsecure networks)')
 def connect(ctx, name, country, password):
     """Connect to WiFi network"""
@@ -343,16 +345,18 @@ def connect(ctx, name, country, password):
     password = do_ensure_param(ctx, 'password')
     if country:
         set_wifi_country(country)
-    if not country and get_wifi_country() == 'unset':
-        raise click.ClickException(
-            'WiFi country not set! Use --country COUNTRY_CODE option.')
+    elif get_wifi_country() == 'unset':
+        country = do_ensure_param(ctx, 'country')
+        if not country:
+            raise click.ClickException(
+                'WiFi country not set! Use --country COUNTRY_CODE option.')
     if not name:
         raise click.ClickException(
             'WiFi name (SSID) not set! Use --name NETWORK_NAME option.')
     do_forget_all()
     do_connect(name, password)
     do_reconnect()
-    do_go_back(ctx)
+    do_go_back_if_ineractive(ctx)
 
 
 @cli.group(invoke_without_command=True)
@@ -363,7 +367,7 @@ def hotspot(ctx):
 
 
 def is_hotspot_active():
-    error, output = utils.run_cmd(['pgrep', '-x', 'hostapd'])
+    error, output = run_cmd(['pgrep', '-x', 'hostapd'])
     if error:
         return False
     return True
@@ -373,18 +377,20 @@ def is_hotspot_active():
 def hotspot_enable():
     """Enable WiFi hotspot"""
     do_hotspot_enable()
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 def do_hotspot_enable():
-    error, output = utils.run_cmd(
+    click.echo('Hotspot enable started.', err=True)
+    error, output = run_cmd(
         ['sudo', 'sh', '-c', settings.BTN_SCRIPTS_DIR + '/enable_wifi_hotspot.sh'])
     if not error:
         click.echo('Hotspot enabled.', err=True)
 
 
 def do_hotspot_disable(reconnect=True):
-    error, output = utils.run_cmd(
+    click.echo('Hotspot disable started.', err=True)
+    error, output = run_cmd(
         ['sudo', 'sh', '-c', settings.BTN_SCRIPTS_DIR + '/disable_wifi_hotspot.sh'])
     if not error:
         click.echo('Hotspot disabled.', err=True)
@@ -400,7 +406,7 @@ def do_hotspot_disable(reconnect=True):
 def hotspot_disable():
     """Disable WiFi hotspot"""
     do_hotspot_disable()
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 @hotspot.command('status')
@@ -411,7 +417,7 @@ def hotspot_status():
     for item in get_hs_config():
         line = '{}={}'.format(item.get('key'), item.get('value'))
         click.echo(line)
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 @hotspot.command('config')

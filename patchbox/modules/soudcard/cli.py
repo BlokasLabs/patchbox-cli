@@ -2,7 +2,7 @@ import subprocess
 import click
 import os
 from os.path import isfile, expanduser
-from patchbox.utils import do_group_menu, do_ensure_param, do_go_back #, PatchboxOption
+from patchbox.utils import do_group_menu, do_ensure_param, do_go_back_if_ineractive
 
 
 def get_cards():
@@ -80,14 +80,14 @@ def list():
         raise click.ClickException('No supported Soundcard found!')
     for card in get_cards():
         click.echo(card.get('value'))
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 @cli.command()
 def status():
     """Show active system Soundcard"""
     click.echo(get_status())
-    do_go_back()
+    do_go_back_if_ineractive()
 
 
 @cli.command()
@@ -107,4 +107,4 @@ def set(ctx, name):
     if active_card:
         selected_card['current'] = active_card.get('key')
     set_active_card(selected_card)
-    do_go_back(ctx)
+    do_go_back_if_ineractive(ctx)

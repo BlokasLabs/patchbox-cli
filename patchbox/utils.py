@@ -95,8 +95,7 @@ class PatchboxChoice(click.ParamType):
         return 'PatchboxChoice(%r)' % list(self.choices or [c.get('value') for c in self.choices])
 
 
-cmd_folder = os.path.abspath(os.path.join(
-    os.path.dirname(__file__), 'commands'))
+modules_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'modules'))
 
 
 class PatchboxHomeGroup(click.MultiCommand):
@@ -114,10 +113,9 @@ class PatchboxHomeGroup(click.MultiCommand):
 
     def list_commands(self, ctx):
         rv = []
-        for filename in os.listdir(cmd_folder):
-            if filename.endswith('.py') and \
-               filename.startswith('cmd_'):
-                rv.append(filename[4:-3])
+        for module in next(os.walk(modules_folder))[1]:
+            if os.path.isfile(os.path.join(modules_folder, module, 'cli.py')):
+                rv.append(module)
         rv.sort()
         return rv
 
@@ -125,7 +123,7 @@ class PatchboxHomeGroup(click.MultiCommand):
         try:
             if sys.version_info[0] == 2:
                 name = name.encode('ascii', 'replace')
-            mod = __import__('patchbox.commands.cmd_' + name,
+            mod = __import__('patchbox.modules.{}.cli'.format(name),
                              None, None, ['cli'])
         except ImportError:
             return
@@ -167,7 +165,7 @@ def write_file(path, content, silent=True):
 
 from pprint import pprint
 
-def show_parent_menu_or_exit(ctx):
+def go_home_or_exit(ctx):
     context = ctx
     while context.parent is not None:
         if isinstance(context.parent.command, PatchboxHomeGroup):
@@ -180,6 +178,7 @@ def show_parent_menu_or_exit(ctx):
 def do_group_menu(ctx, cancel=None, ok=None):
     if ctx.invoked_subcommand is None:
         if ctx.meta.get('interactive', False):
+            click.clear()
             options = []
             commands = ctx.command.list_commands(ctx)
             for command in commands:
@@ -189,7 +188,7 @@ def do_group_menu(ctx, cancel=None, ok=None):
                 cancel = 'Back'
             close, output = views.do_menu(ctx.command.short_help, options, ok=ok, cancel=cancel)
             if close:
-                show_parent_menu_or_exit(ctx)
+                go_home_or_exit(ctx)
             if output:
                 cmd = None
                 if isinstance(output, dict):
@@ -200,7 +199,7 @@ def do_group_menu(ctx, cancel=None, ok=None):
         else:
             click.echo(ctx.command.get_help(ctx))
 
-# todo: apvalyti
+
 def do_ensure_param(ctx, name):
     param = None
     close = None
@@ -222,15 +221,11 @@ def do_ensure_param(ctx, name):
     if param.help:
         message += '\n{}'.format(param.help)
 
-    value = param.get_default(ctx)
-    if value:
-        return value
-
     if not ctx.meta.get('interactive', False):
+        value = param.get_default(ctx)
         return value
 
     if isinstance(param.type, click.Choice):
-        # todo: param help text add to cmd short help
         close, value = views.do_menu(message, param.type.get_choices(), cancel='Cancel')
         if param.type == dict:
             for option in param.choices:
@@ -241,22 +236,18 @@ def do_ensure_param(ctx, name):
         close, value = views.do_inputbox(message)
 
     if close:
-        show_parent_menu_or_exit(ctx)
+        go_home_or_exit(ctx)
 
     return value
 
 
-def do_go_back(ctx=None):
-    def go_back():
-        ctx = click.get_current_context()
-        if ctx.meta.get('interactive'):
-            click.echo("\nPress any key to continue...", err=True)
-            click.getchar()
-            click.clear()
-            if ctx.parent:
-                ctx.invoke(ctx.parent.command)
-    
+def do_go_back_if_ineractive(ctx=None, silent=False):
     if not ctx:
         ctx = click.get_current_context()
     if ctx.meta.get('interactive'):
-        ctx.call_on_close(go_back)
+        if not silent:
+            click.echo("\nPress any key to continue...", err=True)
+            click.getchar()
+        click.clear()
+        if ctx.parent:
+            ctx.invoke(ctx.parent.command)

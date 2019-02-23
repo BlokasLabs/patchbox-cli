@@ -3,7 +3,7 @@ import glob
 import subprocess
 import re
 import click
-from patchbox.utils import do_group_menu
+from patchbox.utils import do_group_menu, do_go_back_if_ineractive
 
 
 def get_system_service_property(name, prop):
@@ -63,6 +63,7 @@ def cli(ctx, no_input):
 def status():
     """Display Bluetooth status"""
     click.echo(get_status().strip())
+    do_go_back_if_ineractive()
 
 
 @cli.command()
@@ -71,6 +72,7 @@ def start():
     if not is_supported():
         raise click.ClickException('Internal Bluetooth device not found!')
     subprocess.call(['/usr/local/pisound/scripts/pisound-btn/system/set_bt_discoverable.sh', 'true'])
+    do_go_back_if_ineractive()
 
 
 @cli.command()
@@ -79,9 +81,4 @@ def stop():
     if not is_supported():
         raise click.ClickException('Internal Bluetooth device not found!')
     subprocess.call(['/usr/local/pisound/scripts/pisound-btn/system/set_bt_discoverable.sh', 'false'])
-
-# @cli.command()
-def list():
-    """List internal Bluetooth devices"""
-    for dev in get_devices():
-        click.echo(dev)
+    do_go_back_if_ineractive()
