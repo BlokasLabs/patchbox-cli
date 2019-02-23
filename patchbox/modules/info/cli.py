@@ -51,7 +51,7 @@ def get_hostname():
 
 @click.command()
 def cli():
-    """Display system info"""
+    """Display System info"""
     message = 'Pisound Button Version: {}'\
         '\nPisound Server Version: {}\nFirmware Version: {}'\
         '\nPisound Serial Number: {}\nIP Address: {}'\
