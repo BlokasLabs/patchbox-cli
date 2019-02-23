@@ -3,6 +3,14 @@ import subprocess
 from patchbox.utils import do_go_back_if_ineractive
 
 
+def is_pisound():
+    try:
+        with open('/sys/kernel/pisound/serial', 'r') as f:
+            return True
+    except:
+        return False
+
+
 def get_serial():
     try:
         with open('/sys/kernel/pisound/serial', 'r') as f:
@@ -52,10 +60,12 @@ def get_hostname():
 @click.command()
 def cli():
     """Display System info"""
-    message = 'Pisound Button Version: {}'\
-        '\nPisound Server Version: {}\nFirmware Version: {}'\
-        '\nPisound Serial Number: {}\nIP Address: {}'\
-        '\nHostname: {}'.format(get_btn_version(), get_ctl_version(
-        ), get_version(), get_serial(), get_ip(), get_hostname())
+    message = 'IP Address: {}'\
+        '\nHostname: {}'.format(get_ip(), get_hostname())
+    if is_pisound():
+        message += '\nPisound Button Version: {}'\
+            '\nPisound Server Version: {}\nFirmware Version: {}'\
+            '\nPisound Serial Number: {}'.format(get_btn_version(), get_ctl_version(
+            ), get_version(), get_serial())
     click.echo(message)
     do_go_back_if_ineractive()
