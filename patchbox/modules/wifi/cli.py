@@ -162,7 +162,8 @@ def do_verify_connection():
         time.sleep(2)
         click.echo(
             'Trying to connect to WiFi network ({}/{}).'.format(retries, MAX_RETRIES), err=True)
-    raise click.ClickException('Connection failed!')
+    click.echo('Connection failed. Activating hotspot.', err=True)
+    do_hotspot_enable()
 
 
 def do_reconnect():
@@ -432,5 +433,8 @@ def hotspot_config(ctx, name, channel, password):
         update_hs_config('channel', channel)
     if password:
         update_hs_config('wpa_passphrase', password)
+    if is_hotspot_active():
+        do_hotspot_disable()
+        do_hotspot_enable()
     do_go_back_if_ineractive(ctx, silent=True)
 
