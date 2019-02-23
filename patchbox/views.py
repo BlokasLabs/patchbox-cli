@@ -214,7 +214,7 @@ def do_checklist(text, *items):
 
 def do_inputbox(text):
     d = InputDialogDisplay(text)
-    d.add_buttons([("Exit", 0)])
+    d.add_buttons([("Cancel", 0)])
     return d.main()
 
 

@@ -41,7 +41,7 @@ class PatchboxChoice(click.ParamType):
                         message += '{}\n\t'.format(value)
             return message.rstrip()
         return 'No choices found.'
-    
+
     def get_choices(self):
         if self.type == 'callback':
             return self.choices()
@@ -58,7 +58,7 @@ class PatchboxChoice(click.ParamType):
             for c in choices:
                 if c.get('value') == value:
                     return c
-                    
+
         if self.type == list:
             if value in choices:
                 return value
@@ -84,10 +84,12 @@ class PatchboxChoice(click.ParamType):
             return normed_value
 
         if self.type == list:
-            self.fail('invalid choice: %s. (choose from %s)' % (value, ', '.join(choices)), param, ctx)
+            self.fail('invalid choice: %s. (choose from %s)' %
+                      (value, ', '.join(choices)), param, ctx)
 
         if self.type == dict:
-            self.fail('invalid choice: %s. (choose from %s)' % (value, ', '.join(c.get('value') for c in choices)), param, ctx)
+            self.fail('invalid choice: %s. (choose from %s)' % (
+                value, ', '.join(c.get('value') for c in choices)), param, ctx)
 
     def __repr__(self):
         if self.type == 'callback':
@@ -95,7 +97,8 @@ class PatchboxChoice(click.ParamType):
         return 'PatchboxChoice(%r)' % list(self.choices or [c.get('value') for c in self.choices])
 
 
-modules_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), 'modules'))
+modules_folder = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), 'modules'))
 
 
 class PatchboxHomeGroup(click.MultiCommand):
@@ -163,7 +166,6 @@ def write_file(path, content, silent=True):
         click.echo(e, err=True)
         return True
 
-from pprint import pprint
 
 def go_home_or_exit(ctx):
     context = ctx
@@ -178,7 +180,7 @@ def go_home_or_exit(ctx):
 def do_group_menu(ctx, cancel=None, ok=None):
     if ctx.invoked_subcommand is None:
         if ctx.meta.get('interactive', False):
-            click.clear()
+            # click.clear()
             options = []
             commands = ctx.command.list_commands(ctx)
             for command in commands:
@@ -186,7 +188,8 @@ def do_group_menu(ctx, cancel=None, ok=None):
                                 'description': ctx.command.get_command(ctx, command).__doc__})
             if not cancel and ctx.parent:
                 cancel = 'Back'
-            close, output = views.do_menu(ctx.command.short_help, options, ok=ok, cancel=cancel)
+            close, output = views.do_menu(
+                ctx.command.short_help, options, ok=ok, cancel=cancel)
             if close:
                 go_home_or_exit(ctx)
             if output:
@@ -203,7 +206,7 @@ def do_group_menu(ctx, cancel=None, ok=None):
 def do_ensure_param(ctx, name):
     param = None
     close = None
-    value = ctx.params.get(name) 
+    value = ctx.params.get(name)
 
     if value:
         return value
@@ -215,7 +218,7 @@ def do_ensure_param(ctx, name):
 
     if not param:
         raise click.ClickException(
-            '"{}" parameter is not registered via function decorator.'.format(name))
+            '"{}" parameter is not registered via decorator.'.format(name))
 
     message = '{}'.format(ctx.command.short_help)
     if param.help:
@@ -226,13 +229,17 @@ def do_ensure_param(ctx, name):
         return value
 
     if isinstance(param.type, click.Choice):
-        close, value = views.do_menu(message, param.type.get_choices(), cancel='Cancel')
+        close, value = views.do_menu(
+            message, param.type.get_choices(), cancel='Cancel')
         if param.type == dict:
             for option in param.choices:
                 if option.get('value') == value:
                     value = option
-    
+
     if isinstance(param.type, click.types.StringParamType):
+        close, value = views.do_inputbox(message)
+
+    if isinstance(param.type, click.types.IntParamType):
         close, value = views.do_inputbox(message)
 
     if close:
@@ -248,6 +255,5 @@ def do_go_back_if_ineractive(ctx=None, silent=False):
         if not silent:
             click.echo("\nPress any key to continue...", err=True)
             click.getchar()
-        click.clear()
         if ctx.parent:
             ctx.invoke(ctx.parent.command)

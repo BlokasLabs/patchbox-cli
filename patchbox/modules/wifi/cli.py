@@ -249,17 +249,6 @@ def get_hs_config():
     return items
 
 
-def update_hs_config(param, value):
-    with open(settings.HS_CFG, 'r') as f:
-        data = f.readlines()
-        for i, line in enumerate(data):
-            if line.startswith(param):
-                data[i] = param + '=' + value + '\n'
-                break
-    with open(settings.HS_CFG, 'w') as f:
-        f.writelines(data)
-
-
 @click.group(invoke_without_command=True)
 @click.pass_context
 def cli(ctx):
@@ -287,14 +276,6 @@ def disable():
 def disconnect():
     """Disconnect from default network"""
     do_disconnect()
-    do_go_back_if_ineractive()
-
-
-# @cli.command()
-def list():
-    """List WiFi interfaces"""
-    for iface in get_ifaces():
-        click.echo(iface)
     do_go_back_if_ineractive()
 
 
@@ -405,6 +386,8 @@ def do_hotspot_disable(reconnect=True):
 @hotspot.command('down')
 def hotspot_disable():
     """Disable WiFi hotspot"""
+    if not is_wifi_supported():
+        raise click.ClickException('WiFi interface not found!')
     do_hotspot_disable()
     do_go_back_if_ineractive()
 
@@ -420,10 +403,34 @@ def hotspot_status():
     do_go_back_if_ineractive()
 
 
-@hotspot.command('config')
-@click.option('--name', help='Hotspot name (SSID).')
-@click.option('--channel', help='Hotspot channel (default=6).', default=6, type=int)
-@click.option('--password', help='Hotspot WiFi network password.')
-def hotspot_config(name, channel, password):
+def update_hs_config(param, value):
+    with open(settings.HS_CFG, 'r') as f:
+        data = f.readlines()
+        for i, line in enumerate(data):
+            if line.startswith(param):
+                data[i] = param + '=' + value + '\n'
+                break
+    with open(settings.HS_CFG, 'w') as f:
+        f.writelines(data)
+
+
+@hotspot.command('setup')
+@click.option('--name', help='Hotspot name (SSID)')
+@click.option('--channel', help='Hotspot channel (default=6)', default=6, type=int)
+@click.option('--password', help='Hotspot WiFi network password')
+@click.pass_context
+def hotspot_config(ctx, name, channel, password):
     """Change WiFi hotspot settings"""
-    pass
+    if not is_wifi_supported():
+        raise click.ClickException('WiFi interface not found!')
+    name = do_ensure_param(ctx, 'name')
+    channel = do_ensure_param(ctx, 'channel')
+    password = do_ensure_param(ctx, 'password')
+    if name:
+        update_hs_config('ssid', name)
+    if channel:
+        update_hs_config('channel', channel)
+    if password:
+        update_hs_config('wpa_passphrase', password)
+    do_go_back_if_ineractive(ctx, silent=True)
+
