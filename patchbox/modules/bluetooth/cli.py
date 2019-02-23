@@ -70,7 +70,7 @@ def status():
 def start():
     """Start Bluetooth device pairing"""
     if not is_supported():
-        raise click.ClickException('Internal Bluetooth device not found!')
+        raise click.ClickException('Bluetooth is not supported!')
     subprocess.call(['/usr/local/pisound/scripts/pisound-btn/system/set_bt_discoverable.sh', 'true'])
     do_go_back_if_ineractive()
 
@@ -79,6 +79,6 @@ def start():
 def stop():
     """Stop Bluetooth device pairing"""
     if not is_supported():
-        raise click.ClickException('Internal Bluetooth device not found!')
+        raise click.ClickException('Bluetooth is not supported!')
     subprocess.call(['/usr/local/pisound/scripts/pisound-btn/system/set_bt_discoverable.sh', 'false'])
     do_go_back_if_ineractive()

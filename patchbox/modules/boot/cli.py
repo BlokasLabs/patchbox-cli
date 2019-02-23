@@ -68,38 +68,18 @@ def get_status():
 @click.group(invoke_without_command=True)
 @click.pass_context
 def cli(ctx):
-    """Manage Soundcards"""
+    """Manage Boot options"""
     do_group_menu(ctx)
 
 
-
 @cli.command()
-def list():
-    """List available system Soundcards"""
-    if not is_supported():
-        raise click.ClickException('No supported Soundcard found!')
-    for card in get_cards():
-        click.echo(card.get('value'))
-    do_go_back_if_ineractive()
-
-
-@cli.command()
-def status():
-    """Show active system Soundcard"""
-    click.echo(get_status())
-    do_go_back_if_ineractive()
-
-
-@cli.command()
-@click.argument('name', type=click.Choice(get_cards()), required=True)
+@click.argument('option', type=click.Choice(['desktop', 'console']))
 @click.pass_context
-def set(ctx, name):
-    """Set active system Soundcard"""
-    if not is_supported():
-        raise click.ClickException('No supported Soundcard found!')
-    selected_card = do_ensure_param(ctx, 'name')
-    active_card = get_active_card()
-    if active_card:
-        selected_card['current'] = active_card.get('key')
-    set_active_card(selected_card)
-    do_go_back_if_ineractive(ctx)
+def environment(ctx, option):
+    """Choose Boot environment (Desktop or Console)"""
+    option = do_ensure_param(ctx, 'option')
+    if option == 'desktop':
+        subprocess.call(['sudo', 'sh', '-c', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_desktop.sh'])
+    if option == 'console':
+        subprocess.call(['sudo', 'sh', '-c', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_console.sh'])
+    do_go_back_if_ineractive()

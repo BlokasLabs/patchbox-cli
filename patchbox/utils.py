@@ -221,7 +221,7 @@ def do_ensure_param(ctx, name):
             '"{}" parameter is not registered via decorator.'.format(name))
 
     message = '{}'.format(ctx.command.short_help)
-    if param.help:
+    if hasattr(param, 'help'):
         message += '\n{}'.format(param.help)
 
     if not ctx.meta.get('interactive', False):
