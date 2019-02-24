@@ -2,6 +2,7 @@ import subprocess
 import shlex
 import click
 import os
+import time
 from patchbox.utils import do_group_menu, do_ensure_param, do_go_back_if_ineractive, get_system_service_property
 
 
@@ -11,8 +12,9 @@ def get_cards():
         for line in f:
             if ']:' in line:
                 card_id = line.split('[')[0].strip()
-                card_name = line.split(':')[1].split('-')[0].strip()
-                cards.append({'key': card_id, 'value': card_name})
+                card_name = line.split('[')[1].split(']')[0].strip()
+                card_title = line.split(':')[1].split('-')[0].strip()
+                cards.append({'key': card_id, 'value': card_name, 'description': card_title})
     return cards
 
 
@@ -30,6 +32,19 @@ def jack_start():
         click.echo('Jack service started!')
     except:
         raise click.ClickException('Failed to start Jack service!')
+
+
+def jack_verify():
+    try:
+        time.sleep(2)
+        state = get_system_service_property('jack', 'SubState')
+        if state == 'running':
+            click.echo('Jack is running!', err=True)
+        else:
+            click.echo('Jack service failed! Please check Jack configuration.')
+    except:
+        raise click.ClickException('Failed to start Jack service!')
+
 
 
 def jack_restart():
@@ -163,5 +178,6 @@ def config(ctx, card, rate, buffer, period):
         update_jack_config('-n', period)
     if card or rate or buffer or period:
         jack_restart()
-    do_go_back_if_ineractive(ctx, silent=True)
+        jack_verify()
+    do_go_back_if_ineractive(ctx)
     
