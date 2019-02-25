@@ -169,6 +169,8 @@ def write_file(path, content, silent=True):
 
 
 def go_home_or_exit(ctx):
+    if ctx.meta.get('wizard'):
+        return
     context = ctx
     while context.parent is not None:
         if isinstance(context.parent.command, PatchboxHomeGroup):
@@ -254,8 +256,10 @@ def do_go_back_if_ineractive(ctx=None, silent=False):
         ctx = click.get_current_context()
     if ctx.meta.get('interactive'):
         if not silent:
-            click.echo("\nPress any key to continue...", err=True)
+            click.echo("\nPress any key to continue...\n", err=True)
             click.getchar()
+        if ctx.meta.get('wizard'):
+            return
         if ctx.parent:
             ctx.invoke(ctx.parent.command)
 

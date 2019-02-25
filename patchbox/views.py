@@ -247,7 +247,7 @@ def do_radiolist(text, *items):
     return d.main()
 
 
-def do_yesno(text):
+def do_yesno(text, yes="Yes", no="No"):
     d = DialogDisplay(text)
-    d.add_buttons([("Yes", 0), ("No", 1)])
+    d.add_buttons([(yes, 0), (no, 1)])
     return d.main()

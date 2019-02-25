@@ -151,7 +151,7 @@ def do_disconnect():
         raise click.ClickException('Operation failed!')
 
 
-def do_verify_connection():
+def do_verify_connection(hotspot_fallback=True):
     MAX_RETRIES = 10
     retries = 0
     while retries < MAX_RETRIES:
@@ -162,11 +162,13 @@ def do_verify_connection():
         time.sleep(2)
         click.echo(
             'Trying to connect to WiFi network ({}/{}).'.format(retries, MAX_RETRIES), err=True)
-    click.echo('Connection failed. Activating hotspot.', err=True)
-    do_hotspot_enable()
+    click.echo('Connection failed.', err=True)
+    if hotspot_fallback:
+        click.echo('Activating hotspot.', err=True)
+        do_hotspot_enable()
 
 
-def do_reconnect():
+def do_reconnect(hotspot_fallback=True):
     networks = get_networks()
     if len(networks) < 1:
         raise click.ClickException('WiFi network config not found!')
@@ -177,7 +179,7 @@ def do_reconnect():
         subprocess.check_output(['wpa_cli', 'reconnect'])
     except:
         raise click.ClickException('Connection failed!')
-    do_verify_connection()
+    do_verify_connection(hotspot_fallback=hotspot_fallback)
 
 
 def is_disabled():
@@ -378,7 +380,7 @@ def do_hotspot_disable(reconnect=True):
         click.echo('Hotspot disabled.', err=True)
     if reconnect:
         try:
-            do_reconnect()
+            do_reconnect(hotspot_fallback=False)
         except:
             click.echo('Failed to connect to default WiFi network.', err=True)
             pass
