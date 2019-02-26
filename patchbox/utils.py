@@ -112,7 +112,7 @@ class PatchboxHomeGroup(click.MultiCommand):
 
     def root_check(self):
         if os.getuid() != 0:
-            click.echo("Must be run as root. Try 'sudo patchbox'")
+            click.echo("Must be run as root. Try 'sudo patchbox-config'")
             sys.exit()
 
     def list_commands(self, ctx):

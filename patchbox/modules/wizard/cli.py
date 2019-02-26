@@ -33,13 +33,13 @@ def cli(ctx):
     run_wizard_cmd(
         ctx, 
         command=password_config, 
-        message='Security first!\n\nYou need to change the default system password.\nPress OK and follow the terminal instructions.',
+        message='Security first!\n\nYou have to change the default system password.\nPress OK and follow the terminal instructions.',
         required=True
     )
     run_wizard_cmd(
         ctx, 
         command=jack_config, 
-        message='Great! Now you need to set your default system soundcard.\nClik OK and follow the instructions.', 
+        message='Great! Now pick the system sound card to use.\nClick OK and follow the instructions.', 
         error="It seems that the settings provided are not supported by your soundcard.\nLet's try again.",
         required=True
     )

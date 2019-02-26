@@ -10,6 +10,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        patchbox=patchbox.cli:cli
+        patchbox-config=patchbox.cli:cli
     ''',
 )

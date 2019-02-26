@@ -351,7 +351,7 @@ def hotspot(ctx):
 
 
 def is_hotspot_active():
-    error, output = run_cmd(['pgrep', '-x', 'hostapd'])
+    error, output = run_cmd(['systemctl', 'is-active', 'wifi-hotspot', '--quiet'])
     if error:
         return False
     return True
@@ -366,16 +366,16 @@ def hotspot_enable():
 
 def do_hotspot_enable():
     click.echo('Hotspot enable started.', err=True)
-    error, output = run_cmd(
-        ['sudo', 'sh', '-c', settings.BTN_SCRIPTS_DIR + '/enable_wifi_hotspot.sh'])
+    error, output = run_cmd(['sudo', 'systemctl', 'enable', 'wifi-hotspot'])
+    error, output = run_cmd(['sudo', 'systemctl', 'start', 'wifi-hotspot'])
     if not error:
         click.echo('Hotspot enabled.', err=True)
 
 
 def do_hotspot_disable(reconnect=True):
     click.echo('Hotspot disable started.', err=True)
-    error, output = run_cmd(
-        ['sudo', 'sh', '-c', settings.BTN_SCRIPTS_DIR + '/disable_wifi_hotspot.sh'])
+    error, output = run_cmd(['sudo', 'systemctl', 'stop', 'wifi-hotspot'])
+    error, output = run_cmd(['sudo', 'systemctl', 'disable', 'wifi-hotspot'])
     if not error:
         click.echo('Hotspot disabled.', err=True)
     if reconnect:

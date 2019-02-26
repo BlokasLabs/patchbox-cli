@@ -156,9 +156,9 @@ def status():
 
 @cli.command()
 @click.option('--card', help='Set default soundcard (-d)', type=click.Choice(get_cards))
-@click.option('--rate', help='Set sample rate compatible with your Soundcard (-r)', type=click.Choice(['44100', '48000', '96000', '192000']))
-@click.option('--buffer', help='Set buffer size (-p)', type=click.Choice(['64', '128', '256', '512', '1024']))
-@click.option('--period', help='Set period (-n)', type=click.Choice(['2', '3', '4', '5', '6', '7', '8', '9']))
+@click.option('--rate', help='Set sample rate compatible with your Soundcard (-r), use 48000, 96000 or 192000 with Pisound', type=click.Choice(['44100', '48000', '96000', '192000']))
+@click.option('--buffer', help='Set buffer size (-p), recommended value: 128', type=click.Choice(['64', '128', '256', '512', '1024']))
+@click.option('--period', help='Set period (-n), recommended value: 2', type=click.Choice(['2', '3', '4', '5', '6', '7', '8', '9']))
 @click.pass_context
 def config(ctx, card, rate, buffer, period):
     """Update Jack service settings"""
@@ -180,4 +180,4 @@ def config(ctx, card, rate, buffer, period):
         jack_restart()
         jack_verify()
     do_go_back_if_ineractive(ctx)
-    
+
