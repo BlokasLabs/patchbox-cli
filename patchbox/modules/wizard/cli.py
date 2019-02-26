@@ -1,3 +1,4 @@
+import subprocess
 import click
 from patchbox.utils import do_go_back_if_ineractive
 from patchbox.views import do_msgbox, do_yesno
@@ -55,4 +56,6 @@ def cli(ctx):
         message='Do you want to connect to WiFi network?'
     )
 
-    do_msgbox("That's it!\n\nYou can re-run this wizard any time by running 'sudo patchbox wizard'.\n\nSee ya!")
+    do_msgbox("That's it!\n\nYou can re-run this wizard any time by running 'sudo patchbox-config wizard'.\n\nSee ya!")
+
+    subprocess.call(['cat', '/etc/motd'])
