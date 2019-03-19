@@ -136,7 +136,7 @@ def start():
 @cli.command()
 def stop():
     """Stop Jack service"""
-    jack_start()
+    jack_stop()
     do_go_back_if_ineractive()
 
 
