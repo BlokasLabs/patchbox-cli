@@ -145,7 +145,7 @@ def is_connected():
 
 def do_disconnect():
     try:
-        click.echo(subprocess.check_output(['wpa_cli', 'disconnect']), err=True)
+        click.echo(subprocess.check_output(['wpa_cli', '-i', get_default_iface(),  'disconnect']), err=True)
         click.echo('Disconnected.', err=True)
     except:
         raise click.ClickException('Operation failed!')
