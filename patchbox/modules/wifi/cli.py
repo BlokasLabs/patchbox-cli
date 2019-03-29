@@ -176,7 +176,7 @@ def do_reconnect(hotspot_fallback=True):
         click.echo('Disabling WiFi hotspot.', err=True)
         do_hotspot_disable(reconnect=False)
     try:
-        subprocess.check_output(['wpa_cli', 'reconnect'])
+        subprocess.check_output(['wpa_cli', '-i', get_default_iface(), 'reconnect'])
     except:
         raise click.ClickException('Connection failed!')
     do_verify_connection(hotspot_fallback=hotspot_fallback)
