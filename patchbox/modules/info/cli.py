@@ -64,7 +64,7 @@ def cli():
         '\nHostname: {}'.format(get_ip(), get_hostname())
     if is_pisound():
         message += '\nPisound Button Version: {}'\
-            '\nPisound Server Version: {}\nFirmware Version: {}'\
+            '\nPisound Server Version: {}\nPisound Firmware Version: {}'\
             '\nPisound Serial Number: {}'.format(get_btn_version(), get_ctl_version(
             ), get_version(), get_serial())
     click.echo(message)
