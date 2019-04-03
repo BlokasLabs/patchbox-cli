@@ -13,13 +13,18 @@ def get_module(ctx, name, silent=False):
         raise click.ClickException(
             '{name}.module not found! Place module files inside "{dir}{name}/" directory.'.format(name=name, dir=ctx.obj.path))
 
+def get_module_names():
+    return [module.name for module in PatchboxModuleManager().modules] 
+
 
 @click.group(invoke_without_command=False)
 @click.pass_context
 def cli(ctx):
     """Manage Patchbox modules"""
     ctx.obj = PatchboxModuleManager()
-    do_group_menu(ctx)
+    if ctx.invoked_subcommand is None:
+        if ctx.meta.get('interactive'):
+            ctx.invoke(ctx.command.get_command(ctx, 'setup'))
 
 
 @cli.command() 
@@ -130,3 +135,22 @@ def activate(ctx, name, arg, autostart):
         ctx.obj.activate(module, autostart=autostart)
     except (ModuleNotInstalled, ModuleManagerError) as err:
         raise click.ClickException(str(err))
+
+
+@cli.command()
+@click.option('--module', help='Module', type=click.Choice(get_module_names))
+#@click.option('--action', help='Button action', type=click.Choice(get_btn_scripts))
+@click.pass_context
+def setup(ctx, module):
+    """Module configuration wizard (Interactive)"""
+    module = do_ensure_param(ctx, 'module')
+    # action = do_ensure_param(ctx, 'action')
+    # if not interaction:
+    #     raise click.ClickException(
+    #         'Button interaction not provided! Use --interaction INTERACTION option.')
+    # if not actions:
+    #     raise click.ClickException(
+    #         'Button action not provided! Use --action ACTION option.')
+    # update_btn_config(interaction, action.get('value'))
+    # print(dir(ctx.parent.parent))
+    do_go_back_if_ineractive(ctx, silent=True, steps=2)

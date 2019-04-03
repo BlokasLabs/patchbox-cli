@@ -43,24 +43,25 @@ class PatchboxModule(object):
         self._service_manager = service_manager or PatchboxServiceManager()
 
         self.name = path.split('/')[-1]
+        self._module = self.get_module()
         self.autostart = self.get_autostart_mode()
 
         self.scripts = self._module.get('scripts', dict())
 
         self.valid = False
 
-    @property
-    def _module(self):
+
+    def get_module(self):
         with open(self.path + 'patchbox-module.json') as f:
             return json.load(f)
-    
+
     def get_autostart_mode(self):
         autostart = self._module.get('autostart')
         if not autostart:
             return False
         if str(autostart) == 'list':
-            return 'list' 
-        if str(autostart) == 'argument': 
+            return 'list'
+        if str(autostart) == 'argument':
             return 'argument'
         return 'auto'
 
@@ -159,35 +160,36 @@ class PatchboxModuleManager(object):
 
         print('pbmm: {}.module start mode is {}'.format(module.name, mode))
         arg = arg or self.state.get('autostart', module.name)
-        
+
         if arg:
             print('pbmm: {}.module start argument is {}'.format(module.name, arg))
-        
 
         if str(mode) in ['list', 'argument'] and not arg:
-                raise ModuleArgumentError(
-                '{}.module start argument is missing'.format(module.name))            
+            raise ModuleArgumentError(
+                '{}.module start argument is missing'.format(module.name))
 
         if str(mode) == 'list':
             options = self.list(module)
             if arg not in options:
                 raise ModuleArgumentError(
-                '{}.module start argument "{}" is not valid'.format(module.name, arg))
-        
+                    '{}.module start argument "{}" is not valid'.format(module.name, arg))
+
         if str(mode) == 'auto':
             arg = None
 
         try:
             if arg:
-                subprocess.Popen(['sh', module.path + script, arg], stdout=DEVNULL, stderr=DEVNULL)
+                subprocess.Popen(['sh', module.path + script, arg],
+                                 stdout=DEVNULL, stderr=DEVNULL)
             else:
-                subprocess.Popen(['sh', module.path + script], stdout=DEVNULL, stderr=DEVNULL)                
+                subprocess.Popen(['sh', module.path + script],
+                                 stdout=DEVNULL, stderr=DEVNULL)
         except:
             raise ModuleManagerError(
                 'failed to start {}.module'.format(module.name))
-    
+
     def stop(self, module):
-        self._stop_module(module)        
+        self._stop_module(module)
 
     def start(self, module, arg=None):
         if not self.state.get('installed', module.name):
@@ -214,7 +216,8 @@ class PatchboxModuleManager(object):
         script = module.scripts.get('stop')
         if script:
             try:
-                subprocess.Popen(['sh', module.path + script], stdout=DEVNULL, stderr=DEVNULL)
+                subprocess.Popen(['sh', module.path + script],
+                                 stdout=DEVNULL, stderr=DEVNULL)
             except:
                 raise ModuleManagerError(
                     'failed to stop {}.module'.format(module.name))
@@ -224,10 +227,12 @@ class PatchboxModuleManager(object):
         has_list = module._module.get('scripts', dict()).get('list')
         if has_list:
             try:
-                output = subprocess.check_output(['sh', module.path + has_list])
+                output = subprocess.check_output(
+                    ['sh', module.path + has_list])
                 return [item for item in output.rstrip().split('\n') if item]
             except:
-                raise ModuleError('{}.module listing error'.format(module.name))
+                raise ModuleError(
+                    '{}.module listing error'.format(module.name))
         raise ModuleError(
             '{}.module does not support listing'.format(module.name))
 
@@ -266,7 +271,6 @@ class PatchboxModuleManager(object):
             except (ServiceError, ModuleError, ModuleArgumentError) as error:
                 print('pbmm: ERROR! {}'.format(error))
                 self._stop_module(module)
-
 
     def deactivate(self):
         current = self.get_active_module()

@@ -251,17 +251,26 @@ def do_ensure_param(ctx, name):
     return value
 
 
-def do_go_back_if_ineractive(ctx=None, silent=False):
+def do_go_back_if_ineractive(ctx=None, silent=False, steps=1):
     if not ctx:
         ctx = click.get_current_context()
+        
     if ctx.meta.get('interactive'):
         if not silent:
             click.echo("\nPress any key to continue...\n", err=True)
             click.getchar()
         if ctx.meta.get('wizard'):
             return
-        if ctx.parent:
-            ctx.invoke(ctx.parent.command)
+
+        context = ctx
+        for step in range(steps):
+            if context.parent and context.parent.command:
+                context = ctx.parent
+            else:
+                ctx.invoke(context.parent)
+                return
+        
+        ctx.invoke(context.command)
 
 
 def get_system_service_property(name, prop):
