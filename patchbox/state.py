@@ -23,9 +23,11 @@ class PatchboxModuleStateManager(object):
         if module_name:
             try:
                 self.data.get('modules')[module_name][param] = value
+                print('State: {}.module {} {}'.format(module_name, param, value))
             except KeyError:
                 self.data.get('modules')[module_name] = {}
                 self.data.get('modules')[module_name][param] = value
+                print('State: {}.module {} {}'.format(module_name, param, value))
         else:
             self.data[param] = value
         with open(self.path, 'w') as f:

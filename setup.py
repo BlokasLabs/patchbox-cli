@@ -11,5 +11,6 @@ setup(
     entry_points='''
         [console_scripts]
         patchbox-config=patchbox.cli:cli
+        patchbox-manager=patchbox.modules.module.cli:cli
     ''',
 )

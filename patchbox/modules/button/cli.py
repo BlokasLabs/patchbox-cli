@@ -8,8 +8,14 @@ from patchbox.utils import do_group_menu, do_ensure_param, do_go_back_if_ineract
 INTERACTIONS = ['CLICK_1', 'CLICK_2', 'CLICK_3', 
         'CLICK_OTHER', 'HOLD_1S', 'HOLD_3S', 'HOLD_5S', 'HOLD_OTHER', 'CLICK_COUNT_LIMIT']
     
-def get_interactions():
+def INTERACTION():
     return INTERACTIONS[:-1]
+
+
+def ACTION():
+    path = settings.BTN_SCRIPTS_DIR
+    return [{'title': f.split('.')[0].replace('_', ' ').title(), 'value': join(path, f)} for f in os.listdir(path) if isfile(join(path, f)) and f.endswith(".sh")]
+
 
 def prepare_btn_config():
     keys = INTERACTIONS
@@ -62,10 +68,6 @@ def get_btn_config():
                     'path': script_path
                     })
     return items
-
-def get_btn_scripts():
-    path = settings.BTN_SCRIPTS_DIR
-    return [{'title': f.split('.')[0].replace('_', ' ').title(), 'value': join(path, f)} for f in os.listdir(path) if isfile(join(path, f)) and f.endswith(".sh")]
 
 
 def update_btn_config(param, value):
@@ -137,7 +139,7 @@ def actions():
     """List all supported Button actions"""
     if not is_supported():
         raise click.ClickException('Button software not found!')
-    for action in get_btn_scripts():
+    for action in ACTION():
         path = action.get('value')
         if path:
             click.echo(path)
@@ -145,8 +147,8 @@ def actions():
 
 
 @cli.command()
-@click.option('--interaction', help='Button interaction', type=click.Choice(get_interactions))
-@click.option('--action', help='Button action', type=click.Choice(get_btn_scripts))
+@click.option('--interaction', help='Button interaction', type=click.Choice(INTERACTION))
+@click.option('--action', help='Button action', type=click.Choice(ACTION))
 @click.pass_context
 def assign(ctx, interaction, action):
     """Assign different Button interaction to different actions"""

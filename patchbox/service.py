@@ -19,20 +19,19 @@ class PatchboxServiceManager(object):
             return False
         try:
             interface.StartUnit(unit_name, mode)
-            print('pbsm: {} started'.format(unit_name))
+            print('Service: {} started'.format(unit_name))
             return True
-        except dbus.exceptions.DBusException as error:
-            print(error)
-            return False
+        except dbus.exceptions.DBusException as err:
+            raise ServiceError(str(err))
 
-    def enable_and_start_unit_if_inactive(self, unit_name, mode="replace"):
+    def enable_start_unit(self, unit_name, mode="replace"):
         if not self.is_active(unit_name):
             if not self.enable_unit(unit_name):
                 return False
             if not self.start_unit(unit_name, mode=mode):
                 return False
             return True
-        print('pbsm: {} already active'.format(unit_name))
+        print('Service: {} active'.format(unit_name))
         return True
 
     def stop_disable_unit(self, unit_name):
@@ -48,11 +47,10 @@ class PatchboxServiceManager(object):
             return False
         try:
             interface.StopUnit(unit_name, mode)
-            print('pbsm: {} stopped'.format(unit_name))
+            print('Service: {} stopped'.format(unit_name))
             return True
-        except dbus.exceptions.DBusException as error:
-            print(error)
-            return False
+        except dbus.exceptions.DBusException as err:
+            raise ServiceError(str(err))
 
     def restart_unit(self, unit_name, mode="replace"):
         interface = self._get_interface()
@@ -60,11 +58,10 @@ class PatchboxServiceManager(object):
             return False
         try:
             interface.RestartUnit(unit_name, mode)
-            print('pbsm: {} restarted'.format(unit_name))
+            print('Service: {} restarted'.format(unit_name))
             return True
-        except dbus.exceptions.DBusException as error:
-            print(error)
-            return False
+        except dbus.exceptions.DBusException as err:
+            raise ServiceError(str(err))
 
     def enable_unit(self, unit_name):
         interface = self._get_interface()
@@ -74,11 +71,9 @@ class PatchboxServiceManager(object):
             interface.EnableUnitFiles([unit_name],
                                       dbus.Boolean(False),
                                       dbus.Boolean(True))
-            print('pbsm: {} enabled'.format(unit_name))
-            return True
-        except dbus.exceptions.DBusException as error:
-            print(error)
-            return False
+            print('Service: {} enabled'.format(unit_name))
+        except dbus.exceptions.DBusException as err:
+            raise ServiceError(str(err))
 
     def disable_unit(self, unit_name):
         interface = self._get_interface()
@@ -86,11 +81,10 @@ class PatchboxServiceManager(object):
             return False
         try:
             interface.DisableUnitFiles([unit_name], dbus.Boolean(False))
-            print('pbsm: {} disabled'.format(unit_name))
+            print('Service: {} disabled'.format(unit_name))
             return True
-        except dbus.exceptions.DBusException as error:
-            print(error)
-            return False
+        except dbus.exceptions.DBusException as err:
+            raise ServiceError(str(err))
 
     def _get_unit_file_state(self, unit_name):
         interface = self._get_interface()
