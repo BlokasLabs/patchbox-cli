@@ -70,12 +70,13 @@ def active(ctx):
 
 @cli.command()
 @click.pass_context
-@click.argument('name')
-def install(ctx, name):
+@click.argument('path', type=click.Path(exists=True))
+def install(ctx, path):
     """Install module"""
-    module = get_module(ctx, name)
-    ctx.obj.install(module)
-
+    try:
+        ctx.obj.install(path)
+    except ModuleManagerError as err:
+        raise click.ClickException(str(err))
 
 @cli.command()
 @click.argument('name', default='')
@@ -152,9 +153,9 @@ def config(ctx):
     if close:
         return
     module = manager.get_module(value.get('value'))
-    manager.activate(module, autolaunch=False)
+    manager.activate(module, autolaunch=False, autoinstall=True)
     if module.autolaunch:
-        print('autolaunch on')
+
         arg = None
         if module.autolaunch == 'auto':
             pass
@@ -162,6 +163,7 @@ def config(ctx):
             options = manager.list(module)
             close, arg = do_menu('Choose an option for autolaunch on boot', options, cancel='Cancel')
             if close:
+                manager._set_autolaunch_argument(module, None)
                 return
         if module.autolaunch == 'argument':
             close, arg = do_inputbox('Enter an argument for autolaunch on boot')

@@ -1,7 +1,10 @@
 import subprocess
 import json
 import os
+from shutil import rmtree, copytree, Error as shutil_error
 import glob
+import zipfile
+import tarfile
 from patchbox.state import PatchboxModuleStateManager
 from patchbox.service import PatchboxServiceManager, ServiceError
 
@@ -33,7 +36,16 @@ class ModuleError(Exception):
 
 
 class ModuleManagerError(Exception):
-    pass
+    def __init__(self, message, remove_dir=None, *args):
+        self.message = message
+        if remove_dir:
+            self._clean_tmp_dir(remove_dir)
+        super(ModuleManagerError, self).__init__(self.message, *args)
+
+    
+    def _clean_tmp_dir(self, dir):
+        rmtree(dir)
+        print('Manager: {} directory deleted'.format(dir)) 
 
 
 class PatchboxModule(object):
@@ -121,6 +133,7 @@ class PatchboxModuleManager(object):
 
     DEFAULT_MODULES_FOLDER = '/usr/local/patchbox-modules'
     DEFAULT_SERVICE_MANAGER = PatchboxServiceManager
+    SYSTEM_FOLDERS = ['system', 'tmp']
 
     def __init__(self, path=None, service_manager=None):
         self.path = self._verify_path(path)
@@ -139,6 +152,10 @@ class PatchboxModuleManager(object):
     def parse_modules(self):
         modules = []
         for module_path in glob.glob(self.path + '*'):
+            if not os.path.isdir(module_path):
+                continue
+            if module_path.split('/')[-1] in self.__class__.SYSTEM_FOLDERS:
+                continue
             try:
                 module = PatchboxModule(module_path)
                 modules.append(module)
@@ -149,25 +166,28 @@ class PatchboxModuleManager(object):
     def get_valid_modules(self):
         return [{'value': module.name, 'description': module.description} for module in self.modules]
     
-    def get_module(self, module_name):
+    def get_module(self, module_name, custom_path=None):
         """
         checks if module already loaded
         loads it if not
         returns
         """
-        for module in self.modules:
-            if module.name == module_name:
-                return module
+        if not custom_path:
+            for module in self.modules:
+                if module.name == module_name:
+                    return module
 
-        path = self.path + str(module_name)
+        path = self.path + str(module_name) if not custom_path else custom_path + str(module_name)
         if not os.path.isdir(path):
             raise ModuleNotFound(module_name)
 
         module = PatchboxModule(path)
         if not module.is_valid():
             raise ModuleError(' '.join(module.errors))
-
-        self.modules.append(module)
+    
+        if not custom_path:
+            self.modules.append(module)
+    
         return module
 
     def get_active_module(self):
@@ -294,26 +314,84 @@ class PatchboxModuleManager(object):
                     '{}.module listing error'.format(module.name))
         raise ModuleManagerError(
             '{}.module does not support list command'.format(module.name))
+    
+    def _validate_module(self, module):
+        pass
 
-    def install(self, module):
+    def install(self, path):
+        tmp_dir = self.path + 'tmp/'
+        tar_file_path = None
+        zip_file_path = None
+        module_name = None
+
+        if os.path.isdir(path):
+            raise ModuleManagerError('module file can\'t be a directory: {}'.format(path))
+
+        if tarfile.is_tarfile(path):
+            tar_file_path = path
+        
+        if zipfile.is_zipfile(path):
+            zip_file_path = path
+        
+        if not tar_file_path and not zip_file_path:
+            raise ModuleManagerError('{} is not a valid file type - only *.tar and *.zip files are supported'.format(path))
+        
+        print('Manager: extracting {} to {}'.format(path, tmp_dir))
+        try:
+            if tar_file_path:
+                tar_file = tarfile.open(tar_file_path)
+                tar_file.extractall(path=tmp_dir)
+                tar_file.close()
+
+            if zip_file_path:
+                zip_file = zipfile.ZipFile(zip_file_path, 'r')
+                zip_file.extractall(tmp_dir)
+                zip_file.close()
+
+            module_name = glob.glob(tmp_dir + '*')[0].split('/')[-1]
+            print('Manager: {}.module found'.format(module_name))
+        except:
+            raise ModuleManagerError('{} module extraction failed'.format(path), remove_dir=tmp_dir)
+
+        module = self.get_module(module_name, custom_path=tmp_dir)
+
         if not isinstance(module, PatchboxModule):
-            raise ModuleManagerError('{} is not a valid module'.format(str(module)))
+            raise ModuleManagerError('{} is not a valid module'.format(str(module)), remove_dir=tmp_dir)
 
         if not module.is_valid():
-            raise ModuleError(
-                "{}.module is not valid: {}".format(module.name, module.errors))
+            raise ModuleManagerError(
+                "{}.module is not valid: {}".format(module.name, module.errors), remove_dir=tmp_dir)
+        print('Manager: {}.module is valid'.format(module.name)) 
 
-        self._install_module(module)
+        if os.path.isdir(self.path + module_name):
+            print('Manager: old {}.module deleted'.format(module.name))
+            rmtree(self.path + module_name)
+        
+        try:
+            copytree(tmp_dir + module_name, self.path + module_name)
+        except (shutil_error, OSError) as e:
+            raise ModuleManagerError(
+                "{}.module copy failed".format(module.name), remove_dir=tmp_dir)
+        print('Manager: {}.module prepared for installation'.format(module.name))        
+        
+        try:
+            self._install_module(module)
+        except ModuleError as err:
+            raise ModuleManagerError(
+                "{}.module installation failed".format(module.name), remove_dir=self.path + module_name)
+        
+        rmtree(tmp_dir)
+
 
     def _install_module(self, module):
         if module.has_install:
-            print('Manager: {}.module install launched'.format(module.name))
+            print('Manager: {}.module install script found'.format(module.name))
             try:
                 subprocess.call(
                     ['sudo', 'chmod', '+x', module.path + str(module.has_install)])
                 subprocess.call(['sudo', 'sh', module.path + str(module.has_install)])
             except:
-                raise ModuleManagerError(
+                raise ModuleError(
                     'Failed to install {}.module via {} script'.format(self.name, module.path + str(module.has_install)))
         else:
             print('Manager: no install script declared for {}.module'.format(module.name))
