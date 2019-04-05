@@ -260,19 +260,20 @@ def do_go_back_if_ineractive(ctx=None, silent=False, steps=1):
         
     if ctx.meta.get('interactive'):
         if not silent:
-            click.echo("\nPress any key to continue...\n", err=True)
+            click.echo("\nPress any key to continue...", err=True)
             click.getchar()
+            click.echo()
         if ctx.meta.get('wizard'):
             return
 
         context = ctx
         for step in range(steps):
             if context.parent and context.parent.command:
-                context = ctx.parent
+                context = context.parent
             else:
-                ctx.invoke(context.parent)
+                context.invoke(context.parent)
                 return
-        
+    
         ctx.invoke(context.command)
 
 

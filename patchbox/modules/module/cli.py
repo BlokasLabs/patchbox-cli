@@ -154,7 +154,10 @@ def config(ctx):
     module = manager.get_module(value.get('value'))
     manager.activate(module, autolaunch=False)
     if module.autolaunch:
+        print('autolaunch on')
         arg = None
+        if module.autolaunch == 'auto':
+            pass
         if module.autolaunch == 'list':
             options = manager.list(module)
             close, arg = do_menu('Choose an option for autolaunch on boot', options, cancel='Cancel')
@@ -182,4 +185,4 @@ def config(ctx):
         if close == 0:
             manager.launch(module, arg=arg)
 
-    do_go_back_if_ineractive(ctx, silent=True, steps=2)
+    do_go_back_if_ineractive(ctx, steps=2)
