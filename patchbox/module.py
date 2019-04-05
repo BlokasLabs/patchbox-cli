@@ -18,7 +18,7 @@ except ImportError:
 class ModuleNotInstalled(Exception):
    def __init__(self, module_name, *args):
         self.message = '{}.module is not installed yet. install it first'.format(module_name)    
-        super(ModuleNotFound, self).__init__(self.message, *args) 
+        super(ModuleNotInstalled, self).__init__(self.message, *args)
 
 
 class ModuleNotFound(Exception):
