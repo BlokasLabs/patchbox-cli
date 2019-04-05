@@ -67,28 +67,28 @@ class PatchboxModule(object):
 
     def parse_module_file(self):
         path = self.path + self.__class__.DEFAULT_MODULE_FILE
-        # try:
-        with open(path) as f:
-            data = json.load(f)
-            module_keys = [k for k in data]
-            for k in self.__class__.REQUIRED_MODULE_KEYS:
-                if k not in module_keys:
-                    raise Exception('{}.module is not valid: "{}" key not defined in {}'.format(self.name, k, path))
-            for service_type in [self.__class__.SYSTEM_SERVICES_KEY, self.__class__.MODULE_SERVICES_KEY]:
-                for i, service in enumerate(data.get(service_type, [])):
-                    if isinstance(service, dict) and service.get('config'):
-                        if not os.path.isfile(self.path + service.get('config').rstrip('/')):
-                            raise ModuleError('{}.module file {} not found'.format(self.name, service.get('config')))
-                        else:
-                            data[service_type][i]['config'] = self.path + service.get('config').rstrip('/')
-            for key in data.get('scripts', dict()):
-                if data.get('scripts', dict()).get(key) and not os.path.isfile(self.path + data.get('scripts', dict()).get(key).rstrip('/')):
-                    raise ModuleError('{}.module file {} not found'.format(self.name, data.get('scripts', dict()).get(key)))
-            return data
-        # except ValueError:
-        #     raise ModuleError('{}.module file ({}) formatting is not valid'.format(self.name, path))
-        # except Exception as err:
-        #     raise ModuleError(err)
+        try:
+            with open(path) as f:
+                data = json.load(f)
+                module_keys = [k for k in data]
+                for k in self.__class__.REQUIRED_MODULE_KEYS:
+                    if k not in module_keys:
+                        raise Exception('{}.module is not valid: "{}" key not defined in {}'.format(self.name, k, path))
+                for service_type in [self.__class__.SYSTEM_SERVICES_KEY, self.__class__.MODULE_SERVICES_KEY]:
+                    for i, service in enumerate(data.get(service_type, [])):
+                        if isinstance(service, dict) and service.get('config'):
+                            if not os.path.isfile(self.path + service.get('config').rstrip('/')):
+                                raise ModuleError('{}.module file {} not found'.format(self.name, service.get('config')))
+                            else:
+                                data[service_type][i]['config'] = self.path + service.get('config').rstrip('/')
+                for key in data.get('scripts', dict()):
+                    if data.get('scripts', dict()).get(key) and not os.path.isfile(self.path + data.get('scripts', dict()).get(key).rstrip('/')):
+                        raise ModuleError('{}.module file {} not found'.format(self.name, data.get('scripts', dict()).get(key)))
+                return data
+        except ValueError:
+            raise ModuleError('{}.module file ({}) formatting is not valid'.format(self.name, path))
+        except Exception as err:
+            raise ModuleError(err)
 
     @property
     def has_install(self):
