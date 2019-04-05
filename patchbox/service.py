@@ -1,7 +1,9 @@
 import dbus
 
-
 class ServiceError(Exception):
+    pass
+
+class ServiceManagerError(Exception):
     pass
 
 

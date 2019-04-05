@@ -43,35 +43,42 @@ class ModuleManagerError(Exception):
         super(ModuleManagerError, self).__init__(self.message, *args)
 
     
-    def _clean_tmp_dir(self, dir):
+    def _clean_tmp_dir(self, remove_dir):
         rmtree(dir)
-        print('Manager: {} directory deleted'.format(dir)) 
+        print('Manager: {} directory deleted'.format(remove_dir)) 
 
 
 class PatchboxModule(object):
 
     DEFAULT_MODULE_FILE = 'patchbox-module.json'
     REQUIRED_MODULE_FILES = ['install.sh', 'patchbox-module.json']
+    REQUIRED_MODULE_KEYS = ['name', 'description', 'version', 'author']
     SYSTEM_SERVICES_KEY = 'depends_on'
     MODULE_SERVICES_KEY = 'services'
 
-    def __init__(self, path, filename=None):
+    def __init__(self, path):
         self.path = path if path.endswith('/') else path + '/'
         self.name = path.split('/')[-1]
-        self._module = self.get_module(filename)
-        self.description = self._module.get('description', 'module has no description')
+        self._module = self.get_module()
+        self.description = self._module.get('description')
         self.autolaunch = self.get_autolaunch_mode()
         self.scripts = self._module.get('scripts', dict())
         self.errors = []
 
-    def get_module(self, filename):
-        filename = filename or self.__class__.DEFAULT_MODULE_FILE
-        path = self.path + filename
+    def get_module(self):
+        path = self.path + self.__class__.DEFAULT_MODULE_FILE
         try:
             with open(path) as f:
-                return json.load(f)
+                data = json.load(f)
+                module_keys = [k for k in data]
+                for k in self.__class__.REQUIRED_MODULE_KEYS:
+                    if k not in module_keys:
+                        raise Exception('{}.module is not valid - "{}" key not defined in {}'.format(self.name, k, path))
+                return data
         except ValueError:
-            raise ModuleError('{}.module file ({}) is not valid'.format(self.name, path))
+            raise ModuleError('{}.module file ({}) formatting is not valid'.format(self.name, path))
+        except Exception as err:
+            raise ModuleError(err)
 
     @property
     def has_install(self):
@@ -127,13 +134,19 @@ class PatchboxModule(object):
         status = {'module_valid': self.valid,
                   'module_installed': self.installed}
         return status
+    
+    def pre_install_validate(self, service_manager=PatchboxServiceManager()):
+        for system_service in self.system_services:
+            break
+        pass
+
 
 
 class PatchboxModuleManager(object):
 
     DEFAULT_MODULES_FOLDER = '/usr/local/patchbox-modules'
     DEFAULT_SERVICE_MANAGER = PatchboxServiceManager
-    SYSTEM_FOLDERS = ['system', 'tmp']
+    IGNORED_MODULES = ['system', 'tmp']
 
     def __init__(self, path=None, service_manager=None):
         self.path = self._verify_path(path)
@@ -154,7 +167,7 @@ class PatchboxModuleManager(object):
         for module_path in glob.glob(self.path + '*'):
             if not os.path.isdir(module_path):
                 continue
-            if module_path.split('/')[-1] in self.__class__.SYSTEM_FOLDERS:
+            if module_path.split('/')[-1] in self.__class__.IGNORED_MODULES:
                 continue
             try:
                 module = PatchboxModule(module_path)
@@ -285,7 +298,11 @@ class PatchboxModuleManager(object):
             raise ModuleManagerError(
             '{}.module is not active'.format(module.name)) 
 
-        self._stop_module(module)
+        if module.has_stop:
+            self._stop_module(module)
+        else:
+            raise ModuleManagerError(
+                '{}.module does not support stop command'.format(module.name))
 
     def _stop_module(self, module):
         if module.has_stop:
@@ -296,9 +313,7 @@ class PatchboxModuleManager(object):
                 raise ModuleManagerError(
                     'failed to stop {}.module'.format(module.name))
             print('Manager: {}.module stopped'.format(module.name))
-            return
-        raise ModuleManagerError(
-            '{}.module does not support stop command'.format(module.name))
+        return
 
     def list(self, module):
         if not isinstance(module, PatchboxModule):
@@ -348,7 +363,11 @@ class PatchboxModuleManager(object):
                 zip_file.extractall(tmp_dir)
                 zip_file.close()
 
-            module_name = glob.glob(tmp_dir + '*')[0].split('/')[-1]
+            files = glob.glob(tmp_dir + '*')
+            if len(files) > 1 or not os.path.isdir(files[0]):
+                raise Exception
+
+            module_name = files[0].split('/')[-1]
             print('Manager: {}.module found'.format(module_name))
         except:
             raise ModuleManagerError('{} module extraction failed'.format(path), remove_dir=tmp_dir)
@@ -382,7 +401,6 @@ class PatchboxModuleManager(object):
         
         rmtree(tmp_dir)
 
-
     def _install_module(self, module):
         if module.has_install:
             print('Manager: {}.module install script found'.format(module.name))
@@ -408,6 +426,7 @@ class PatchboxModuleManager(object):
 
         current = self.get_active_module()
         if current and current.name != module.name:
+            self._stop_module(current)
             self._deactivate_module(current)
         try:
             self._activate_module(module)
