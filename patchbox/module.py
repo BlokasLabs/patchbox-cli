@@ -6,7 +6,7 @@ import glob
 import zipfile
 import tarfile
 from patchbox.state import PatchboxModuleStateManager
-from patchbox.service import PatchboxServiceManager, ServiceError
+from patchbox.service import PatchboxServiceManager, PatchboxService, ServiceError
 
 try:
     from subprocess import DEVNULL
@@ -73,7 +73,7 @@ class PatchboxModule(object):
                 module_keys = [k for k in data]
                 for k in self.__class__.REQUIRED_MODULE_KEYS:
                     if k not in module_keys:
-                        raise Exception('{}.module is not valid - "{}" key not defined in {}'.format(self.name, k, path))
+                        raise Exception('{}.module is not valid: "{}" key not defined in {}'.format(self.name, k, path))
                 return data
         except ValueError:
             raise ModuleError('{}.module file ({}) formatting is not valid'.format(self.name, path))
@@ -119,13 +119,13 @@ class PatchboxModule(object):
     def system_services(self):
         ss = self._module.get(self.__class__.SYSTEM_SERVICES_KEY)
         if ss:
-            return list(ss.keys())
+            return [PatchboxService(service) for service in ss]
         return []
 
     def module_services(self):
         ss = self._module.get(self.__class__.MODULE_SERVICES_KEY)
         if ss:
-            return list(ss.keys())
+            return [PatchboxService(service) for service in ss]
         return []
 
     def status(self):
@@ -349,7 +349,7 @@ class PatchboxModuleManager(object):
             zip_file_path = path
         
         if not tar_file_path and not zip_file_path:
-            raise ModuleManagerError('{} is not a valid file type - only *.tar and *.zip files are supported'.format(path))
+            raise ModuleManagerError('{} is not a valid file type: *.tar and *.zip files are supported'.format(path))
         
         print('Manager: extracting {} to {}'.format(path, tmp_dir))
         try:
