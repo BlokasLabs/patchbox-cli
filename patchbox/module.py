@@ -59,26 +59,36 @@ class PatchboxModule(object):
     def __init__(self, path):
         self.path = path if path.endswith('/') else path + '/'
         self.name = path.split('/')[-1]
-        self._module = self.get_module()
+        self._module = self.parse_module_file()
         self.description = self._module.get('description')
         self.autolaunch = self.get_autolaunch_mode()
         self.scripts = self._module.get('scripts', dict())
         self.errors = []
 
-    def get_module(self):
+    def parse_module_file(self):
         path = self.path + self.__class__.DEFAULT_MODULE_FILE
-        try:
-            with open(path) as f:
-                data = json.load(f)
-                module_keys = [k for k in data]
-                for k in self.__class__.REQUIRED_MODULE_KEYS:
-                    if k not in module_keys:
-                        raise Exception('{}.module is not valid: "{}" key not defined in {}'.format(self.name, k, path))
-                return data
-        except ValueError:
-            raise ModuleError('{}.module file ({}) formatting is not valid'.format(self.name, path))
-        except Exception as err:
-            raise ModuleError(err)
+        # try:
+        with open(path) as f:
+            data = json.load(f)
+            module_keys = [k for k in data]
+            for k in self.__class__.REQUIRED_MODULE_KEYS:
+                if k not in module_keys:
+                    raise Exception('{}.module is not valid: "{}" key not defined in {}'.format(self.name, k, path))
+            for service_type in [self.__class__.SYSTEM_SERVICES_KEY, self.__class__.MODULE_SERVICES_KEY]:
+                for i, service in enumerate(data.get(service_type, [])):
+                    if isinstance(service, dict) and service.get('config'):
+                        if not os.path.isfile(self.path + service.get('config').rstrip('/')):
+                            raise ModuleError('{}.module file {} not found'.format(self.name, service.get('config')))
+                        else:
+                            data[service_type][i]['config'] = self.path + service.get('config').rstrip('/')
+            for key in data.get('scripts', dict()):
+                if data.get('scripts', dict()).get(key) and not os.path.isfile(self.path + data.get('scripts', dict()).get(key).rstrip('/')):
+                    raise ModuleError('{}.module file {} not found'.format(self.name, data.get('scripts', dict()).get(key)))
+            return data
+        # except ValueError:
+        #     raise ModuleError('{}.module file ({}) formatting is not valid'.format(self.name, path))
+        # except Exception as err:
+        #     raise ModuleError(err)
 
     @property
     def has_install(self):
@@ -329,9 +339,6 @@ class PatchboxModuleManager(object):
                     '{}.module listing error'.format(module.name))
         raise ModuleManagerError(
             '{}.module does not support list command'.format(module.name))
-    
-    def _validate_module(self, module):
-        pass
 
     def install(self, path):
         tmp_dir = self.path + 'tmp/'
@@ -462,6 +469,9 @@ class PatchboxModuleManager(object):
         if module.module_services():
             for service in module.module_services():
                 self._service_manager.stop_disable_unit(service)
+        if module.system_services():
+            for service in module.system_services():
+                self._service_manager.reset_unit_environment(service)            
         self.state.set_active_module(None)
     
     def _set_autolaunch_argument(self, module, arg):

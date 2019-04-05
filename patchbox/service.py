@@ -11,10 +11,10 @@ class ServiceManagerError(Exception):
 
 class PatchboxService(object):
 
-    def __init__(self, service_obj):
+    def __init__(self, service_obj, path=None):
         self.name = None
-        self.config_file = None
-        self.environ_variable = None
+        self.environ_value = None
+        self.environ_param = None
 
         if isinstance(service_obj, unicode):
             self.name = str(service_obj)
@@ -25,13 +25,13 @@ class PatchboxService(object):
                 raise ServiceError('service declaration ({}) is not valid'.format(service_obj))
             self.name = service_obj.get('service')
             if service_obj.get('config'):
-                self.config_file = service_obj.get('config')
-                self.environ_variable = self.get_config_type(self.name)
+                self.environ_value = service_obj.get('config')
+                self.environ_param = self.get_env_param(self.name)
         else:
             raise ServiceError('service declaration ({}) is not valid'.format(service_obj))
     
     @staticmethod
-    def get_config_type(service_name):
+    def get_env_param(service_name):
         service_name = service_name.split('/')[-1].rstrip('.service') if service_name.endswith('.service') else service_name.split('/')[-1]
         info = {
             'amidiauto': 'AMIDIAUTO_CFG',
@@ -39,6 +39,9 @@ class PatchboxService(object):
         }
         return info.get(service_name)
 
+
+def update_penviron(param, value):
+        penviron().set(param, value)
 
 
 class PatchboxServiceManager(object):
@@ -54,8 +57,6 @@ class PatchboxServiceManager(object):
         if interface is None:
             return False
         try:
-            if pservice.environ_variable:
-                print('Service: {} environment variable found'.format(pservice.name, pservice.environ_variable))
             interface.StartUnit(pservice.name, mode)
             print('Service: {} started'.format(pservice.name))
             return True
@@ -63,18 +64,17 @@ class PatchboxServiceManager(object):
             raise ServiceError(str(err))
 
     def enable_start_unit(self, pservice, mode="replace"):
-        if pservice.environ_variable and pservice.config_file:
-            print(environ.get(pservice.environ_variable))
-            print('Service: {} environment variable found: {}'.format(pservice.name, pservice.environ_variable))
-            environ[pservice.environ_variable] = pservice.config_file
-            print(environ.get(pservice.environ_variable))
-        if not self.is_active(pservice):
-            if not self.enable_unit(pservice):
-                return False
-            if not self.start_unit(pservice, mode=mode):
-                return False
+        is_active = self.is_active(pservice)
+        if not is_active:
+            self.enable_unit(pservice)
+            if pservice.environ_param:
+                update_penviron(pservice.environ_param, pservice.environ_value)
+            self.start_unit(pservice, mode=mode)
             return True
-        print('Service: {} already active'.format(pservice.name))
+        else:
+            if pservice.environ_param:
+                update_penviron(pservice.environ_param, pservice.environ_value)     
+            self.restart_unit(pservice, mode=mode)
         return True
 
     def stop_disable_unit(self, pservice):
@@ -90,20 +90,24 @@ class PatchboxServiceManager(object):
             return False
         try:
             interface.StopUnit(pservice.name, mode)
-            if pservice.environ_variable:
-                print('Service: {} environment variable found'.format(pservice.name, pservice.environ_variable))
-                pass
+            if pservice.environ_param:
+                update_penviron(pservice.environ_param, pservice.environ_value)
             print('Service: {} stopped'.format(pservice.name))
             return True
         except dbus.exceptions.DBusException as err:
             raise ServiceError(str(err))
+    
+    def reset_unit_environment(self, pservice):
+        if pservice.environ_param:
+            update_penviron(pservice.environ_param, None)
+            self.restart_unit(pservice)      
 
     def restart_unit(self, pservice, mode="replace"):
         interface = self._get_interface()
         if interface is None:
             return False
         try:
-            interface.RestartUnit(pservice, mode)
+            interface.RestartUnit(pservice.name, mode)
             print('Service: {} restarted'.format(pservice.name))
             return True
         except dbus.exceptions.DBusException as err:
