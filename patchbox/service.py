@@ -1,4 +1,6 @@
+from os import environ
 import dbus
+from patchbox.environment import PatchboxEnvironment as penviron
 
 class ServiceError(Exception):
     pass
@@ -61,8 +63,11 @@ class PatchboxServiceManager(object):
             raise ServiceError(str(err))
 
     def enable_start_unit(self, pservice, mode="replace"):
-        if pservice.environ_variable:
+        if pservice.environ_variable and pservice.config_file:
+            print(environ.get(pservice.environ_variable))
             print('Service: {} environment variable found: {}'.format(pservice.name, pservice.environ_variable))
+            environ[pservice.environ_variable] = pservice.config_file
+            print(environ.get(pservice.environ_variable))
         if not self.is_active(pservice):
             if not self.enable_unit(pservice):
                 return False
