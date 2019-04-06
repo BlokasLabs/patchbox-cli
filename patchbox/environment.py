@@ -4,7 +4,7 @@ class PatchboxEnvironment(object):
         self.path = '/etc/environment'
 
 
-    def get(self, param):
+    def get(self, param, debug=True):
         param = str(param)
 
         with open(self.path, 'r') as f:
@@ -12,16 +12,18 @@ class PatchboxEnvironment(object):
                 if len(line.strip()) != 0:
                     if line.startswith(param):
                         value = line.split('=')[-1].strip()
-                        print('Environment: get {}={}'.format(param, value))
+                        if debug:
+                            print('Environment: get {}={}'.format(param, value))
                         return value
-        print('Environment: get {}={}'.format(param, None))
+        if debug:
+            print('Environment: get {}={}'.format(param, None))
         return None
 
 
-    def set(self, param, value):
-        if value:
+    def set(self, param, value, debug=True):
+        if value and debug:
             print('Environment: set {}={}'.format(param, value))
-        else:
+        elif debug:
             print('Environment: {} unset'.format(param))
         with open(self.path, 'r') as f:
             data = f.readlines()
