@@ -15,9 +15,11 @@ class PisoundButton(object):
         self.path = path or penviron.get('PISOUND_BTN_CFG', debug=False) or settings.BTN_CFG
         self.system_dir = settings.BTN_SCRIPTS_DIR
         self.module_dir = None
+        self.module = None
         
         active_module = penviron.get('PATCHBOX_MODULE_ACTIVE', debug=False)
         if active_module:
+            self.module = active_module
             self.module_dir = '/usr/local/patchbox-modules/{}/pisound-btn/'.format(active_module)
 
 
@@ -38,8 +40,9 @@ class PisoundButton(object):
 
     
     def get_actions(self):
-        all_scripts = self._get_module_actions() + self._get_system_actions()
-        actions = [{'title': f.split('.')[0].replace('_', ' ').title(), 'value': f} for f in all_scripts]
+        actions = []
+        actions = actions + [{'title': f.split('/')[-1].split('.')[0].replace('_', ' ').title() + ' ({}.module)'.format(self.module), 'value': f} for f in self._get_module_actions()]
+        actions = actions + [{'title': f.split('/')[-1].split('.')[0].replace('_', ' ').title(), 'value': f} for f in self._get_system_actions()]
         return actions
 
     def ensure_config(self, interactions=INTERACTIONS):
