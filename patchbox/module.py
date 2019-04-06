@@ -106,6 +106,10 @@ class PatchboxModule(object):
     def has_stop(self):
         return self._module.get('scripts', dict()).get('stop')
 
+    @property
+    def has_button_scripts(self):
+        return os.path.isdir(os.join(self.path, '/pisound-btn/'))
+
     def get_autolaunch_mode(self):
         autolaunch = self._module.get('launch_mode')
         if not autolaunch:

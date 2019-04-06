@@ -192,8 +192,7 @@ def config(ctx):
                     break
                 do_msgbox('Argument must be a valid file path')
         if arg:
-            manager._set_autolaunch_argument(module, arg)
-            
+            manager._set_autolaunch_argument(module, arg)            
         
         close, value = do_yesno('Do you want to launch now?')
         if close == 0:
