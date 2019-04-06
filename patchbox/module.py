@@ -73,8 +73,10 @@ class PatchboxModule(object):
                 module_keys = [k for k in data]
                 for k in self.__class__.REQUIRED_MODULE_KEYS:
                     if k not in module_keys:
-                        raise Exception('{}.module is not valid: "{}" key not defined in {}'.format(self.name, k, path))
+                        raise ModuleError('{}.module is not valid: "{}" key not defined in {}'.format(self.name, k, path))
                 for service_type in [self.__class__.SYSTEM_SERVICES_KEY, self.__class__.MODULE_SERVICES_KEY]:
+                    if not isinstance(data.get(service_type, []), list):
+                        raise ModuleError('{}.module is not valid: "{}" key must be a list'.format(self.name, service_type))
                     for i, service in enumerate(data.get(service_type, [])):
                         if isinstance(service, dict) and service.get('config'):
                             if not os.path.isfile(self.path + service.get('config').rstrip('/')):
@@ -87,8 +89,6 @@ class PatchboxModule(object):
                 return data
         except ValueError:
             raise ModuleError('{}.module file ({}) formatting is not valid'.format(self.name, path))
-        except Exception as err:
-            raise ModuleError(err)
 
     @property
     def has_install(self):
@@ -299,14 +299,11 @@ class PatchboxModuleManager(object):
                 'failed to launch {}.module {}'.format(module.name, err))
         print('Manager: {}.module launched'.format(module.name))
     
-    def stop(self, module):
-        if not isinstance(module, PatchboxModule):
-            raise ModuleManagerError('{} is not a valid module'.format(str(module)))
-        
+    def stop(self):        
         active = self.get_active_module()
-        if not active or active.name != module.name:
+        if not active:
             raise ModuleManagerError(
-            '{}.module is not active'.format(module.name)) 
+                'no active module found')            
 
         if module.has_stop:
             self._stop_module(module)
@@ -423,8 +420,8 @@ class PatchboxModuleManager(object):
         self.state.set('installed', True, module.name)
 
     def activate(self, module, autolaunch=True, autoinstall=False):
-        if not isinstance(module, PatchboxModule):
-            raise ModuleManagerError('{} is not a valid module'.format(str(module)))
+        # if not isinstance(module, PatchboxModule):
+        #     raise ModuleManagerError('{} is not a valid module'.format(str(module)))
 
         if not self.state.get('installed', module.name):
             if not autoinstall:

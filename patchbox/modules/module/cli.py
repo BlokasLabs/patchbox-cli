@@ -98,7 +98,10 @@ def status(ctx, name):
 @click.pass_context
 def deactivate(ctx):
     """Deactivate active module"""
-    ctx.obj.deactivate()
+    try:
+        ctx.obj.deactivate(module)
+    except ModuleManagerError as err:
+        raise click.ClickException(str(err))
 
 
 @cli.command()
@@ -110,18 +113,16 @@ def launch(ctx, name, arg):
     module = get_module(ctx, name)
     try:
         ctx.obj.launch(module, arg)
-    except ModuleManagerError as err:
+    except (ModuleManagerError, ModuleNotInstalled) as err:
         raise click.ClickException(str(err))
 
 
 @cli.command()
 @click.pass_context
-@click.argument('name')
-def stop(ctx, name):
+def stop(ctx):
     """Stop module"""
-    module = get_module(ctx, name)
     try:
-        ctx.obj.stop(module)
+        ctx.obj.stop()
     except ModuleManagerError as err:
         raise click.ClickException(str(err))
 
@@ -131,14 +132,14 @@ def stop(ctx, name):
 @click.argument('name')
 @click.argument('arg', default=False)
 @click.option('--autolaunch/--no-autolaunch', default=True)
-@click.option('--autoinstall/--no-autoinstall', default=False)
+@click.option('--autoinstall/--no-autoinstall', default=True)
 def activate(ctx, name, arg, autolaunch, autoinstall):
     """Activate module"""
     name = do_ensure_param(ctx, 'name')
     module = get_module(ctx, name)
     try:
         ctx.obj.activate(module, autolaunch=autolaunch, autoinstall=autoinstall)
-    except ModuleManagerError as err:
+    except (ModuleManagerError, ModuleNotInstalled) as err:
         raise click.ClickException(str(err))
 
 

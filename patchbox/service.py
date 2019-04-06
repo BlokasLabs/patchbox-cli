@@ -74,7 +74,7 @@ class PatchboxServiceManager(object):
         else:
             if pservice.environ_param:
                 update_penviron(pservice.environ_param, pservice.environ_value)     
-            self.restart_unit(pservice, mode=mode)
+                self.restart_unit(pservice, mode=mode)
         return True
 
     def stop_disable_unit(self, pservice):
