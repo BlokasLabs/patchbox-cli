@@ -15,6 +15,7 @@ class PatchboxService(object):
         self.name = None
         self.environ_value = None
         self.environ_param = None
+        self.on_activate = True
 
         if isinstance(service_obj, unicode):
             self.name = str(service_obj)
@@ -24,9 +25,13 @@ class PatchboxService(object):
             if not service_obj.get('service'):
                 raise ServiceError('service declaration ({}) is not valid'.format(service_obj))
             self.name = service_obj.get('service')
+
             if service_obj.get('config'):
                 self.environ_value = service_obj.get('config')
                 self.environ_param = self.get_env_param(self.name)
+            
+            if service_obj.get('on_activate', True) == False:
+                self.on_activate = service_obj.get('on_activate')
         else:
             raise ServiceError('service declaration ({}) is not valid'.format(service_obj))
     

@@ -19,7 +19,10 @@ class PatchboxEnvironment(object):
 
 
     def set(self, param, value):
-        print('Environment: set {}={}'.format(param, value))
+        if value:
+            print('Environment: set {}={}'.format(param, value))
+        else:
+            print('Environment: {} unset'.format(param))
         with open(self.path, 'r') as f:
             data = f.readlines()
             changed = None
