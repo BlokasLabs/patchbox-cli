@@ -71,7 +71,7 @@ def start():
     if not is_supported():
         raise click.ClickException('Bluetooth is not supported!')
     subprocess.call(['/usr/local/pisound/scripts/pisound-btn/system/set_bt_discoverable.sh', 'true'])
-    do_go_back_if_ineractive()
+    do_go_back_if_ineractive(silent=True)
 
 
 @cli.command()
@@ -80,4 +80,4 @@ def stop():
     if not is_supported():
         raise click.ClickException('Bluetooth is not supported!')
     subprocess.call(['/usr/local/pisound/scripts/pisound-btn/system/set_bt_discoverable.sh', 'false'])
-    do_go_back_if_ineractive()
+    do_go_back_if_ineractive(silent=True)
