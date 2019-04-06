@@ -4,7 +4,7 @@ import os
 from os.path import isfile, join, expanduser
 from patchbox import settings
 from patchbox.utils import do_group_menu, do_ensure_param, do_go_back_if_ineractive
-from patchbox.environment import PatchboxEnvironment
+from patchbox.environment import PatchboxEnvironment as penviron
 
 class PisoundButton(object):
 
@@ -12,21 +12,43 @@ class PisoundButton(object):
         'CLICK_OTHER', 'HOLD_1S', 'HOLD_3S', 'HOLD_5S', 'HOLD_OTHER', 'CLICK_COUNT_LIMIT']
 
     def __init__(self, path=None):
-        self.path = path or PatchboxEnvironment().get('PISOUND_BTN_CFG', debug=False) or settings.BTN_CFG
-        self.system_scripts_dir = settings.BTN_SCRIPTS_DIR
+        self.path = path or penviron.get('PISOUND_BTN_CFG', debug=False) or settings.BTN_CFG
+        self.system_dir = settings.BTN_SCRIPTS_DIR
+        self.module_dir = None
+        
+        active_module = penviron.get('PATCHBOX_MODULE_ACTIVE', debug=False)
+        if active_module:
+            self.module_dir = '/usr/local/patchbox-modules/{}/pisound-btn/'.format(active_module)
 
 
+    def _get_system_actions(self):
+        if self.system_dir == None:
+            return []
+        if not os.path.isdir(self.system_dir):
+            return []
+        return [join(self.system_dir, f) for f in os.listdir(self.system_dir) if isfile(join(self.system_dir, f)) and f.endswith(".sh")]
+
+    
+    def _get_module_actions(self):
+        if self.module_dir == None:
+            return []
+        if not os.path.isdir(self.module_dir):
+            return []
+        return [join(self.module_dir, f) for f in os.listdir(self.module_dir) if isfile(join(self.module_dir, f)) and f.endswith(".sh")]
+
+    
     def get_actions(self):
-        return [{'title': f.split('.')[0].replace('_', ' ').title(), 'value': join(self.system_scripts_dir, f)} for f in os.listdir(self.system_scripts_dir) if isfile(join(self.system_scripts_dir, f)) and f.endswith(".sh")]
-
+        all_scripts = self._get_module_actions() + self._get_system_actions()
+        actions = [{'title': f.split('.')[0].replace('_', ' ').title(), 'value': f} for f in all_scripts]
+        return actions
 
     def ensure_config(self, interactions=INTERACTIONS):
-        keys = INTERACTIONS
+        keys = self.__class__.INTERACTIONS
         
         if not isfile(self.path):
                 with open(self.path, 'w') as f:
                     for key in keys:
-                        f.writelines(key + '\t' + self.system_scripts_dir + '/do_nothing.sh' '\n')
+                        f.writelines(key + '\t' + self.system_dir + '/do_nothing.sh' '\n')
         
         with open(self.path, 'r') as f:
             missing_keys = []
@@ -43,7 +65,7 @@ class PisoundButton(object):
                 if key == 'CLICK_COUNT_LIMIT':
                     lines.append(str(key + '\t' + '8' '\n'))
                     continue
-                lines.append(str(key + '\t' + self.system_scripts_dir + '/do_nothing.sh' '\n'))
+                lines.append(str(key + '\t' + self.system_dir + '/do_nothing.sh' '\n'))
 
             with open(self.path, 'w') as f:
                 f.writelines(sorted(lines))
@@ -111,14 +133,11 @@ class PisoundButton(object):
         return status
 
 
-INTERACTIONS = PisoundButton.INTERACTIONS
-    
 def INTERACTION():
-    return INTERACTIONS[:-1]
+    return PisoundButton.INTERACTIONS[:-1]
 
 def ACTION():
     return PisoundButton().get_actions()
-
 
 
 @click.group(invoke_without_command=True)
@@ -171,15 +190,18 @@ def assign(ctx, interaction, action):
     """Assign different Button interaction to different actions"""
     if not ctx.obj.is_supported():
         raise click.ClickException('Button software not found!')
-    ctx.obj.ensure_config()
+
     interaction = do_ensure_param(ctx, 'interaction')
     action = do_ensure_param(ctx, 'action')
+    
     if not interaction:
         raise click.ClickException(
             'Button interaction not provided! Use --interaction INTERACTION option.')
+    
     if not action:
         raise click.ClickException(
             'Button action not provided! Use --action ACTION option.')
+    
     ctx.obj.update_config(interaction, action.get('value'))
     do_go_back_if_ineractive(ctx, silent=True)
     

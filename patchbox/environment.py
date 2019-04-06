@@ -1,13 +1,10 @@
 class PatchboxEnvironment(object):
 
-    def __init__(self):
-        self.path = '/etc/environment'
-
-
-    def get(self, param, debug=True):
+    @staticmethod
+    def get(param, debug=True):
         param = str(param)
 
-        with open(self.path, 'r') as f:
+        with open('/etc/environment', 'r') as f:
             for line in f:
                 if len(line.strip()) != 0:
                     if line.startswith(param):
@@ -19,13 +16,13 @@ class PatchboxEnvironment(object):
             print('Environment: get {}={}'.format(param, None))
         return None
 
-
-    def set(self, param, value, debug=True):
+    @staticmethod
+    def set(param, value, debug=True):
         if value and debug:
             print('Environment: set {}={}'.format(param, value))
         elif debug:
             print('Environment: {} unset'.format(param))
-        with open(self.path, 'r') as f:
+        with open('/etc/environment', 'r') as f:
             data = f.readlines()
             changed = None
             for i, line in enumerate(data):
@@ -39,5 +36,5 @@ class PatchboxEnvironment(object):
             if not changed and value:
                 data.append('{}={}\n'.format(param, value))
 
-        with open(self.path, 'w') as f:
+        with open('/etc/environment', 'w') as f:
             f.writelines(data)

@@ -3,6 +3,7 @@ import json
 import os
 import glob
 import dbus
+from patchbox.environment import PatchboxEnvironment as penviron
 
 class PatchboxModuleStateManager(object):
 
@@ -48,6 +49,8 @@ class PatchboxModuleStateManager(object):
                 return
             self.set('active', False, module_name=active_name)
             self.set('active_module', None)
+            penviron.set('PATCHBOX_MODULE_ACTIVE', None)
             return
         self.set('active', True, module_name=module_name)
         self.set('active_module', module_name)
+        penviron.set('PATCHBOX_MODULE_ACTIVE', module_name)

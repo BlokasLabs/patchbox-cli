@@ -45,10 +45,6 @@ class PatchboxService(object):
         return info.get(service_name)
 
 
-def update_penviron(param, value):
-        penviron().set(param, value)
-
-
 class PatchboxServiceManager(object):
 
     UNIT_INTERFACE = "org.freedesktop.systemd1.Unit"
@@ -73,12 +69,12 @@ class PatchboxServiceManager(object):
         if not is_active:
             self.enable_unit(pservice)
             if pservice.environ_param:
-                update_penviron(pservice.environ_param, pservice.environ_value)
+                penviron.set(pservice.environ_param, pservice.environ_value)
             self.start_unit(pservice, mode=mode)
             return True
         else:
             if pservice.environ_param:
-                update_penviron(pservice.environ_param, pservice.environ_value)     
+                penviron.set(pservice.environ_param, pservice.environ_value)     
                 self.restart_unit(pservice, mode=mode)
         return True
 
@@ -96,7 +92,7 @@ class PatchboxServiceManager(object):
         try:
             interface.StopUnit(pservice.name, mode)
             if pservice.environ_param:
-                update_penviron(pservice.environ_param, pservice.environ_value)
+                penviron.set(pservice.environ_param, pservice.environ_value)
             print('Service: {} stopped'.format(pservice.name))
             return True
         except dbus.exceptions.DBusException as err:
@@ -104,7 +100,7 @@ class PatchboxServiceManager(object):
     
     def reset_unit_environment(self, pservice):
         if pservice.environ_param:
-            update_penviron(pservice.environ_param, None)
+            penviron.set(pservice.environ_param, None)
             self.restart_unit(pservice)      
 
     def restart_unit(self, pservice, mode="replace"):
