@@ -162,7 +162,6 @@ class PatchboxModuleManager(object):
         self.path = self._verify_path(path)
         self.state = PatchboxModuleStateManager()
         self._service_manager = service_manager or self.__class__.DEFAULT_SERVICE_MANAGER()
-        self.modules = self.parse_modules()
 
     def _verify_path(self, path):
         path = path or self.__class__.DEFAULT_MODULES_FOLDER
@@ -172,7 +171,7 @@ class PatchboxModuleManager(object):
                 '"patchbox-modules" folder not found in "{}"'.format(self.path))
         return path
 
-    def parse_modules(self):
+    def get_all_modules(self):
         modules = []
         for module_path in glob.glob(self.path + '*'):
             if not os.path.isdir(module_path):
@@ -186,20 +185,7 @@ class PatchboxModuleManager(object):
                 pass          
         return modules
     
-    def get_valid_modules(self):
-        return [{'value': module.name, 'description': module.description} for module in self.modules]
-    
     def get_module(self, module_name, custom_path=None):
-        """
-        checks if module already loaded
-        loads it if not
-        returns
-        """
-        if not custom_path:
-            for module in self.modules:
-                if module.name == module_name:
-                    return module
-
         path = self.path + str(module_name) if not custom_path else custom_path + str(module_name)
         if not os.path.isdir(path):
             raise ModuleNotFound(module_name)
@@ -207,9 +193,6 @@ class PatchboxModuleManager(object):
         module = PatchboxModule(path)
         if not module.is_valid():
             raise ModuleError(' '.join(module.errors))
-    
-        if not custom_path:
-            self.modules.append(module)
     
         return module
 
@@ -231,9 +214,6 @@ class PatchboxModuleManager(object):
                     self._stop_module(module)
 
     def launch(self, module, arg=None):
-        if not isinstance(module, PatchboxModule):
-            raise ModuleManagerError('{} is not a valid module'.format(str(module)))
-
         if not self.state.get('installed', module.name):
             raise ModuleNotInstalled(module.name)
         
@@ -323,9 +303,6 @@ class PatchboxModuleManager(object):
         return
 
     def list(self, module):
-        if not isinstance(module, PatchboxModule):
-            raise ModuleManagerError('{} is not a valid module'.format(str(module)))
-
         if module.has_list:
             try:
                 output = subprocess.check_output(
@@ -403,6 +380,12 @@ class PatchboxModuleManager(object):
             raise ModuleManagerError(
                 "{}.module installation failed".format(module.name), remove_dir=self.path + module_name)
         
+        try:
+            self._deactivate_module(module, fake=True)
+        except Exception as err:
+            print("Manager: WARNING: {}".format(str(err)))
+
+        
         rmtree(tmp_dir)
 
     def _install_module(self, module):
@@ -420,9 +403,6 @@ class PatchboxModuleManager(object):
         self.state.set('installed', True, module.name)
 
     def activate(self, module, autolaunch=True, autoinstall=False):
-        # if not isinstance(module, PatchboxModule):
-        #     raise ModuleManagerError('{} is not a valid module'.format(str(module)))
-
         if not self.state.get('installed', module.name):
             if not autoinstall:
                 raise ModuleNotInstalled(module.name)
@@ -462,14 +442,15 @@ class PatchboxModuleManager(object):
             self._stop_module(current)
             self._deactivate_module(current)
 
-    def _deactivate_module(self, module):
+    def _deactivate_module(self, module, fake=False):
         if module.module_services():
             for service in module.module_services():
                 self._service_manager.stop_disable_unit(service)
-        if module.system_services():
-            for service in module.system_services():
-                self._service_manager.reset_unit_environment(service)            
-        self.state.set_active_module(None)
+        if not fake:
+            if module.system_services():
+                for service in module.system_services():
+                    self._service_manager.reset_unit_environment(service)
+            self.state.set_active_module(None)
     
     def _set_autolaunch_argument(self, module, arg):
         self.state.set('autolaunch', arg, module.name)
