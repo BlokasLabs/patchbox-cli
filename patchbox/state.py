@@ -6,7 +6,7 @@ import dbus
 
 class PatchboxModuleStateManager(object):
 
-    DEFAULT_STATE_DIR = '/usr/local/patchbox-modules/system/'
+    DEFAULT_STATE_DIR = '/root/.patchbox/'
     DEFAULT_STATE_FILE = 'state.json'
 
     def __init__(self, path=None):
