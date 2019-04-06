@@ -285,8 +285,8 @@ class PatchboxModuleManager(object):
             raise ModuleManagerError(
                 'no active module found')            
 
-        if module.has_stop:
-            self._stop_module(module)
+        if active.has_stop:
+            self._stop_module(active)
         else:
             raise ModuleManagerError(
                 '{}.module does not support stop command'.format(module.name))

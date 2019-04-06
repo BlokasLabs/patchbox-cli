@@ -49,7 +49,7 @@ def list(ctx, name):
         except ModuleManagerError as err:
             raise click.ClickException(str(err))
     else:
-        for module in manager.modules:
+        for module in manager.get_all_modules():
             active = 'inactive'
             installed = 'not_installed'
             if manager.state.get('active', module.name):
@@ -99,7 +99,7 @@ def status(ctx, name):
 def deactivate(ctx):
     """Deactivate active module"""
     try:
-        ctx.obj.deactivate(module)
+        ctx.obj.deactivate()
     except ModuleManagerError as err:
         raise click.ClickException(str(err))
 
