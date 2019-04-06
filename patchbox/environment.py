@@ -19,18 +19,19 @@ class PatchboxEnvironment(object):
 
 
     def set(self, param, value):
-        param = str(param)
-        value = str(value)
         print('Environment: set {}={}'.format(param, value))
         with open(self.path, 'r') as f:
             data = f.readlines()
             changed = None
             for i, line in enumerate(data):
                 if line.startswith(param):
-                    data[i] = '{}={}\n'.format(param, value)
+                    if value:
+                        data[i] = '{}={}\n'.format(param, value)
+                    else:
+                        del data[i]
                     changed = True
                     break
-            if not changed:
+            if not changed and value:
                 data.append('{}={}\n'.format(param, value))
 
         with open(self.path, 'w') as f:
