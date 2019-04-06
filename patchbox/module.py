@@ -44,7 +44,7 @@ class ModuleManagerError(Exception):
 
     
     def _clean_tmp_dir(self, remove_dir):
-        rmtree(dir)
+        rmtree(remove_dir)
         print('Manager: {} directory deleted'.format(remove_dir)) 
 
 
@@ -154,6 +154,20 @@ class PatchboxModule(object):
             break
         pass
 
+# Workaround to extract zips, keeping the permissions (especially +x).
+class ZipFileWithPermissions(zipfile.ZipFile):
+    def extract(self, member, path=None, pwd=None):
+        if not isinstance(member, zipfile.ZipInfo):
+            member = self.getinfo(member)
+
+        if path is None:
+            path = os.getcwd()
+
+        ret_val = self._extract_member(member, path, pwd)
+        attr = member.external_attr >> 16
+        if attr:
+            os.chmod(ret_val, attr)
+        return ret_val
 
 class PatchboxModuleManager(object):
 
@@ -347,7 +361,7 @@ class PatchboxModuleManager(object):
                 tar_file.close()
 
             if zip_file_path:
-                zip_file = zipfile.ZipFile(zip_file_path, 'r')
+                zip_file = ZipFileWithPermissions(zip_file_path, 'r')
                 zip_file.extractall(tmp_dir)
                 zip_file.close()
 
