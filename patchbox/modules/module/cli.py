@@ -152,14 +152,14 @@ def config(ctx):
         manager = PatchboxModuleManager()
     
     options = [{'value': module.name, 'title': '{}: {}'.format(module.name, module.description)} for module in manager.get_all_modules()]
-    options.append({'value': 'system', 'title': 'system: Default Patchbox OS environment'})
+    options.append({'value': 'none', 'title': 'none: Default Patchbox OS environment'})
     
     close, value = do_menu('Choose a module:', options, cancel='Cancel')
     
     if close:
         return
     
-    if value.get('value') == 'system':
+    if value.get('value') == 'none':
         manager.deactivate()
         do_go_back_if_ineractive(ctx, steps=2)
         return

@@ -432,10 +432,10 @@ class PatchboxModuleManager(object):
 
         if module.module_services():
             for service in module.module_services():
-                if service.on_activate:
+                if service.auto_start:
                     self._service_manager.enable_start_unit(service)
                 else:
-                   print('Manager: {} on_activate {}'.format(service.name, service.on_activate)) 
+                   print('Manager: {} auto_start {}'.format(service.name, service.auto_start)) 
 
         self.state.set_active_module(module.name)
 
