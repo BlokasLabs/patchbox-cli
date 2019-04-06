@@ -87,8 +87,8 @@ class PatchboxModule(object):
                     if data.get('scripts', dict()).get(key) and not os.path.isfile(self.path + data.get('scripts', dict()).get(key).rstrip('/')):
                         raise ModuleError('{}.module file {} not found'.format(self.name, data.get('scripts', dict()).get(key)))
                 return data
-        except ValueError:
-            raise ModuleError('{}.module file ({}) formatting is not valid'.format(self.name, path))
+        except (ValueError, IOError):
+            raise ModuleError('{}.module file ({}) is not valid or missing'.format(self.name, path))
 
     @property
     def has_install(self):
@@ -155,7 +155,6 @@ class PatchboxModule(object):
         pass
 
 
-
 class PatchboxModuleManager(object):
 
     DEFAULT_MODULES_FOLDER = '/usr/local/patchbox-modules'
@@ -168,12 +167,16 @@ class PatchboxModuleManager(object):
         self._service_manager = service_manager or self.__class__.DEFAULT_SERVICE_MANAGER()
 
     def _verify_path(self, path):
-        path = path or self.__class__.DEFAULT_MODULES_FOLDER
-        path = path if path.endswith('/') else path + '/'
-        if not os.path.isdir(path):
-            raise ModuleManagerError(
-                '"patchbox-modules" folder not found in "{}"'.format(self.path))
-        return path
+        modules_path = path or self.__class__.DEFAULT_MODULES_FOLDER
+        modules_path = modules_path if modules_path.endswith('/') else modules_path + '/'
+        if not os.path.isdir(modules_path):
+            if not path:
+                os.mkdir(modules_path)
+                return modules_path
+            else:
+                raise ModuleManagerError(
+                    '"patchbox-modules" folder not found in "{}"'.format(path))
+        return modules_path
 
     def get_all_modules(self):
         modules = []
