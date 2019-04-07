@@ -6,6 +6,7 @@ from inspect import isfunction
 import click
 from patchbox import views
 from click.termui import prompt, confirm
+from patchbox.views import do_msgbox, do_yesno
 
 
 class PatchboxChoice(click.ParamType):
@@ -14,18 +15,20 @@ class PatchboxChoice(click.ParamType):
     name = 'choice'
 
     def __init__(self, choices, case_sensitive=True):
-        self.type = list
+        self.type = 'list'
         self.choices = choices
         self.case_sensitive = case_sensitive
         if self.choices:
             if isfunction(self.choices):
                 self.type = 'callback'
             elif isinstance(self.choices[0], dict):
-                self.type = dict
+                self.type = 'dict'
 
     def get_metavar(self, param):
-        if self.type == dict:
+        if self.type == 'dict':
             return '[%s]' % '|'.join([c.get('value') for c in self.choices])
+        if self.type == 'callback':
+            return '{}'.format(self.choices.__name__)
         return '[%s]' % '|'.join(self.choices)
 
     def get_missing_message(self, param):
@@ -55,12 +58,12 @@ class PatchboxChoice(click.ParamType):
         else:
             choices = self.choices
 
-        if self.type == dict:
+        if self.type == 'dict':
             for c in choices:
                 if c.get('value') == value:
                     return c
 
-        if self.type == list:
+        if self.type == 'list':
             if value in choices:
                 return value
 
@@ -84,11 +87,11 @@ class PatchboxChoice(click.ParamType):
         if normed_value in normed_choices:
             return normed_value
 
-        if self.type == list:
+        if self.type == 'list':
             self.fail('invalid choice: %s. (choose from %s)' %
                       (value, ', '.join(choices)), param, ctx)
 
-        if self.type == dict:
+        if self.type == 'dict':
             self.fail('invalid choice: %s. (choose from %s)' % (
                 value, ', '.join(c.get('value') for c in choices)), param, ctx)
 
@@ -112,7 +115,7 @@ class PatchboxHomeGroup(click.MultiCommand):
 
     def root_check(self):
         if os.getuid() != 0:
-            click.echo("Must be run as root. Try 'sudo patchbox-config'")
+            click.echo("Must be run as root. Try with 'sudo'")
             sys.exit()
 
     def list_commands(self, ctx):
@@ -251,18 +254,47 @@ def do_ensure_param(ctx, name):
     return value
 
 
-def do_go_back_if_ineractive(ctx=None, silent=False):
+def do_go_back_if_ineractive(ctx=None, silent=False, steps=1):
     if not ctx:
         ctx = click.get_current_context()
+        
     if ctx.meta.get('interactive'):
         if not silent:
-            click.echo("\nPress any key to continue...\n", err=True)
+            click.echo("\nPress any key to continue...", err=True)
             click.getchar()
+            click.echo()
         if ctx.meta.get('wizard'):
             return
-        if ctx.parent:
-            ctx.invoke(ctx.parent.command)
+
+        context = ctx
+        for step in range(steps):
+            if context.parent and context.parent.command:
+                context = context.parent
+            else:
+                context.invoke(context.parent)
+                return
+    
+        ctx.invoke(context.command)
 
 
 def get_system_service_property(name, prop):
     return subprocess.check_output(['systemctl', 'show', '-p', prop, '--value', name]).strip()
+
+
+def run_interactive_cmd(ctx, command=None, args=None, message='Let\'s begin!', error="Uups! Something ain\'t right. Let\'s try again.", required=False):
+    if required:
+        do_msgbox(message)
+    while command:
+        if not required:
+            no, output = do_yesno(message)
+            if no:
+                break
+        try:
+            if args and isinstance(args, dict):
+                ctx.invoke(command, **args)
+            else:
+                ctx.invoke(command)
+            break
+        except Exception as err:
+            print(str(err))
+            do_msgbox(error)

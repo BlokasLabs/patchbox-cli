@@ -23,4 +23,4 @@ def environment(ctx, option):
     if option == 'console':
         subprocess.call(['sudo', 'chmod', '+x', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_console.sh'])
         subprocess.call(['sudo', 'sh', '-c', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_console.sh'])
-    do_go_back_if_ineractive()
+    do_go_back_if_ineractive(silent=True)

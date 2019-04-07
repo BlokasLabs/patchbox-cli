@@ -36,7 +36,8 @@ def jack_start():
 
 def jack_verify():
     try:
-        time.sleep(3)
+        click.echo('Waiting for Jack to boot...', err=True)
+        time.sleep(5)
         state = get_system_service_property('jack', 'SubState')
         if state == 'running':
             click.echo('Jack is running!', err=True)

@@ -1,4 +1,7 @@
+Install:
+
+  $ sudo apt install patchbox-cli
+
 Usage:
 
-  $ pip install --editable .
   $ patchbox --help
