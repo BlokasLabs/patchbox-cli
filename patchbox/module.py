@@ -59,6 +59,7 @@ class PatchboxModule(object):
     def __init__(self, path):
         self.path = path if path.endswith('/') else path + '/'
         self.name = self.path.split('/')[-2]
+        self.type = 'imported' if self.path.split('/')[-3] == 'imported' else 'original'
 
         self.data = self.parse_module_file()
 
@@ -596,4 +597,15 @@ class PatchboxModuleManager(object):
         self.state.set('auto_launch', arg, module.path)
 
     def status(self):
-        return self._state
+        status = ''
+        status += 'module_active={}\n'.format(self.state.get('active_module'))
+        module = self.get_active_module()
+        if module:
+            status += 'module_version={}\n'.format(module.version)
+            status += 'module_auto_launch_mode={}\n'.format(module.autolaunch)
+            status += 'module_auto_launch_argument={}\n'.format(self.state.get('auto_launch', module.path))
+            for service in module.get_system_services():
+                status += 'module_system_service_{}={}\n'.format(service.name.split('.')[0], self._service_manager.get_active_state(service))
+            for service in module.get_module_services():
+                status += 'module_service_{}={}\n'.format(service.name.split('.')[0], self._service_manager.get_active_state(service))
+        return status.rstrip()

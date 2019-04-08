@@ -7,7 +7,7 @@ from patchbox.views import do_msgbox, do_yesno, do_menu, do_inputbox
 from patchbox.utils import do_go_back_if_ineractive, run_interactive_cmd
 
 
-def get_module(ctx, name, silent=False):
+def get_module_by_name(ctx, name, silent=False):
     try:
         return ctx.obj.get_module_by_name(name)
     except (ModuleNotFound, ModuleError) as err:
@@ -29,7 +29,7 @@ def cli(ctx):
 @cli.command()
 @click.pass_context
 def init(ctx):
-    """Activate Patchbox Module Manager"""
+    """Initiate manager (System)"""
     manager = ctx.obj or PatchboxModuleManager()
     try:
         manager.init()
@@ -44,7 +44,7 @@ def list(ctx, name):
     """List available modules"""
     manager = ctx.obj
     if name:
-        module = get_module(ctx, name)
+        module = get_module_by_name(ctx, name)
         try:
             lst = manager.list(module)
             for l in lst:
@@ -69,24 +69,17 @@ def active(ctx):
 @click.pass_context
 @click.argument('path', type=click.Path(exists=True))
 def install(ctx, path):
-    """Install module"""
+    """Install module from file"""
     try:
         ctx.obj.install(path)
     except ModuleManagerError as err:
         raise click.ClickException(str(err))
 
 @cli.command()
-@click.argument('name', default='')
 @click.pass_context
-def status(ctx, name):
+def status(ctx):
     """Module manager status"""
-    status = ''
-    if name:
-        module = get_module(ctx, name)
-        click.echo('module status not implemented error')
-    else:
-        status = ctx.obj.state.data
-        click.echo(json.dumps(status, indent=4, sort_keys=True))
+    click.echo(ctx.obj.status())
 
 
 @cli.command()
@@ -105,7 +98,7 @@ def deactivate(ctx):
 @click.argument('arg', default=False)
 def launch(ctx, name, arg):
     """Launch module"""
-    module = get_module(ctx, name)
+    module = get_module_by_name(ctx, name)
     try:
         ctx.obj.launch(module, arg)
     except ModuleManagerError as err:
@@ -115,7 +108,7 @@ def launch(ctx, name, arg):
 @cli.command()
 @click.pass_context
 def stop(ctx):
-    """Stop module"""
+    """Stop active module"""
     try:
         ctx.obj.stop()
     except ModuleManagerError as err:
@@ -129,9 +122,9 @@ def stop(ctx):
 @click.option('--autolaunch/--no-autolaunch', default=True)
 @click.option('--autoinstall/--no-autoinstall', default=True)
 def activate(ctx, name, arg, autolaunch, autoinstall):
-    """Activate module"""
+    """Activate module by name"""
     name = do_ensure_param(ctx, 'name')
-    module = get_module(ctx, name)
+    module = get_module_by_name(ctx, name)
     try:
         ctx.obj.activate(module, autolaunch=autolaunch, autoinstall=autoinstall)
     except (ModuleManagerError, ModuleNotInstalled) as err:
@@ -142,10 +135,10 @@ def activate(ctx, name, arg, autolaunch, autoinstall):
 @click.pass_context
 def restart(ctx):
     """Restart active module"""
-    active_name = ctx.obj.state.get('active_module')
-    if not active_name:
+    active_path = ctx.obj.state.get('active_module')
+    if not active_path:
         return
-    module = get_module(ctx, active_name)
+    module = ctx.obj.get_active_module()
     try:
         ctx.obj.deactivate()
         ctx.obj.activate(module)
@@ -156,17 +149,19 @@ def restart(ctx):
 @cli.command()
 @click.pass_context
 def config(ctx):
-    """Module configuration wizard (Interactive)"""
+    """Configuration wizard (Interactive)"""
     manager = ctx.obj
     if not isinstance(manager, PatchboxModuleManager):
         manager = PatchboxModuleManager()
     
-    options = [{'value': module.name, 'title': '{}: {}'.format(module.name, module.description)} for module in manager.get_all_modules()]
+    options = [{'value': module.path, 'title': '{}: {} (version: {}-{})'.format(module.name, module.description, module.version, module.type)} for module in manager.get_all_modules()]
+    options = sorted(options, key=lambda k: k.get('title')) 
     options.append({'value': 'none', 'title': 'none: Default Patchbox OS environment'})
     
     close, value = do_menu('Choose a module:', options, cancel='Cancel')
     
     if close:
+        do_go_back_if_ineractive(ctx, steps=2, silent=True)
         return
     
     if value.get('value') == 'none':
@@ -174,7 +169,7 @@ def config(ctx):
         do_go_back_if_ineractive(ctx, steps=2)
         return
 
-    module = manager.get_module(value.get('value'))
+    module = manager.get_module_by_path(value.get('value'))
     manager.activate(module, autolaunch=False, autoinstall=True)
     if module.autolaunch:
 
@@ -186,17 +181,20 @@ def config(ctx):
             close, arg = do_menu('Choose an option for autolaunch on boot', options, cancel='Cancel')
             if close:
                 manager._set_autolaunch_argument(module, None)
+                do_go_back_if_ineractive(ctx, steps=2)
                 return
         if module.autolaunch == 'argument':
             close, arg = do_inputbox('Enter an argument for autolaunch on boot')
             if close:
                 manager._set_autolaunch_argument(module, None)
+                do_go_back_if_ineractive(ctx, steps=2)
                 return
         if module.autolaunch == 'path':
             while True:
                 close, arg = do_inputbox('Enter a path for autolaunch on boot')
                 if close:
                     manager._set_autolaunch_argument(module, None)
+                    do_go_back_if_ineractive(ctx, steps=2)
                     return
                 if os.path.isfile(arg) or os.path.isdir(arg):
                     break
