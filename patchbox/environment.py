@@ -18,22 +18,29 @@ class PatchboxEnvironment(object):
 
     @staticmethod
     def set(param, value, debug=True):
-        if value and debug:
-            print('Environment: set {}={}'.format(param, value))
-        elif debug:
-            print('Environment: {} unset'.format(param))
         with open('/etc/environment', 'r') as f:
             data = f.readlines()
             changed = None
             for i, line in enumerate(data):
                 if line.startswith(param):
+                    current_value = line.split('=')[-1].strip()
+                    if current_value == value:
+                        if debug:
+                            print('Environment: {} {} -> {} (skip)'.format(param, current_value, value))
+                        return
                     if value:
+                        if debug:
+                            print('Environment: {} {} -> {}'.format(param, current_value, value))
                         data[i] = '{}={}\n'.format(param, value)
                     else:
+                        if debug:
+                            print('Environment: {} {} -> unset'.format(param, current_value))
                         del data[i]
                     changed = True
                     break
             if not changed and value:
+                if debug:
+                    print('Environment: {} unset -> {}'.format(param, value))
                 data.append('{}={}\n'.format(param, value))
 
         with open('/etc/environment', 'w') as f:

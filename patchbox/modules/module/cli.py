@@ -9,7 +9,7 @@ from patchbox.utils import do_go_back_if_ineractive, run_interactive_cmd
 
 def get_module(ctx, name, silent=False):
     try:
-        return ctx.obj.get_module(name)
+        return ctx.obj.get_module_by_name(name)
     except (ModuleNotFound, ModuleError) as err:
         if silent:
             return None
@@ -30,8 +30,11 @@ def cli(ctx):
 @click.pass_context
 def init(ctx):
     """Activate Patchbox Module Manager"""
-    manager = ctx.obj
-    manager.init()
+    manager = ctx.obj or PatchboxModuleManager()
+    try:
+        manager.init()
+    except (ModuleManagerError, ModuleError) as err:
+        raise click.ClickException(str(err))
 
 
 @cli.command()
@@ -50,13 +53,7 @@ def list(ctx, name):
             raise click.ClickException(str(err))
     else:
         for module in manager.get_all_modules():
-            active = 'inactive'
-            installed = 'not_installed'
-            if manager.state.get('active', module.name):
-                active = 'active'
-            if manager.state.get('installed', module.name):
-                installed = 'installed'
-            click.echo('{} {}|{}'.format(module.name, active, installed))
+            click.echo('{}'.format(module.path))
 
 
 @cli.command()
@@ -84,11 +81,9 @@ def install(ctx, path):
 def status(ctx, name):
     """Module manager status"""
     status = ''
-    module = get_module(ctx, name, silent=True)
-    if module:
-        for key, value in module.status().items():
-            status += '{}={}\n'.format(key, value)
-        click.echo(status.rstrip('\n'))
+    if name:
+        module = get_module(ctx, name)
+        click.echo('module status not implemented error')
     else:
         status = ctx.obj.state.data
         click.echo(json.dumps(status, indent=4, sort_keys=True))
@@ -113,7 +108,7 @@ def launch(ctx, name, arg):
     module = get_module(ctx, name)
     try:
         ctx.obj.launch(module, arg)
-    except (ModuleManagerError, ModuleNotInstalled) as err:
+    except ModuleManagerError as err:
         raise click.ClickException(str(err))
 
 
@@ -139,6 +134,21 @@ def activate(ctx, name, arg, autolaunch, autoinstall):
     module = get_module(ctx, name)
     try:
         ctx.obj.activate(module, autolaunch=autolaunch, autoinstall=autoinstall)
+    except (ModuleManagerError, ModuleNotInstalled) as err:
+        raise click.ClickException(str(err))
+
+
+@cli.command()
+@click.pass_context
+def restart(ctx):
+    """Restart active module"""
+    active_name = ctx.obj.state.get('active_module')
+    if not active_name:
+        return
+    module = get_module(ctx, active_name)
+    try:
+        ctx.obj.deactivate()
+        ctx.obj.activate(module)
     except (ModuleManagerError, ModuleNotInstalled) as err:
         raise click.ClickException(str(err))
 
