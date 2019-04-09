@@ -18,5 +18,4 @@ PATCHBOX_MODULE_FOLDER = '/usr/local/patchbox-modules/'
 PATCHBOX_MODULE_TMP_FOLDER = '/root/.patchbox/tmp/'
 PATCHBOX_MODULE_IGNORED = ['system', 'tmp', 'imported']
 PATCHBOX_MODULE_FILE = 'patchbox-module.json'
-PATCHBOX_MODULE_REQUIRED_FILES = ['install.sh']
 PATCHBOX_MODULE_REQUIRED_KEYS = ['name', 'description', 'version', 'author']

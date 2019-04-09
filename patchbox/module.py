@@ -53,7 +53,6 @@ class ModuleManagerError(Exception):
 class PatchboxModule(object):
 
     PATCHBOX_MODULE_FILE = settings.PATCHBOX_MODULE_FILE
-    PATCHBOX_MODULE_REQUIRED_FILES = settings.PATCHBOX_MODULE_REQUIRED_FILES
     PATCHBOX_MODULE_REQUIRED_KEYS = settings.PATCHBOX_MODULE_REQUIRED_KEYS
 
     def __init__(self, path):
@@ -93,12 +92,6 @@ class PatchboxModule(object):
                 '{}.module file ({}) is not valid or missing'.format(self.name, path))
 
     def is_valid(self):
-        required_files = self.__class__.PATCHBOX_MODULE_REQUIRED_FILES
-        found_files = [f.split('/')[-1] for f in glob.glob(self.path + '*')]
-        for f in required_files:
-            if f not in found_files:
-                raise ModuleError(
-                    'required {}.module file {} not found'.format(self.name, str(f)))
         self.get_scripts()
         self.get_system_services()
         self.get_module_services()
@@ -249,11 +242,7 @@ class PatchboxModuleManager(object):
         imported = [path for path in glob.glob(self.imp_path + '*') if os.path.isdir(
             path) and path.split('/')[-1] not in self.__class__.PATCHBOX_MODULE_IGNORED]
         
-        return default + imported
-
-    def _get_tmp_module_paths(self):
-        return [path for path in glob.glob(self.tmp_path + '*') if os.path.isdir(
-            path) and path.split('/')[-1] not in self.__class__.PATCHBOX_MODULE_IGNORED]   
+        return default + imported 
 
     def get_all_modules(self):
         modules = []
@@ -269,8 +258,8 @@ class PatchboxModuleManager(object):
 
         return modules
 
-    def get_module_by_name(self, module_name, from_tmp=False):
-        paths = self._get_module_paths() if not from_tmp else self._get_tmp_module_paths()
+    def get_module_by_name(self, module_name):
+        paths = self._get_module_paths()
 
         candidates = [path for path in paths if path.endswith(module_name)]
 
@@ -294,17 +283,14 @@ class PatchboxModuleManager(object):
 
             print('Manager: {}.module ({}, {}) choosen'.format(module_name, path, version))
 
-        module = PatchboxModule(path)
-
-        if not module.is_valid():
-            raise ModuleError(' '.join(module.errors))
-        return module
+        return self.get_module_by_path(path)
     
     def get_module_by_path(self, path):
         module = PatchboxModule(path)
-
-        if not module.is_valid():
-            raise ModuleError(' '.join(module.errors))
+        installed_version = self.state.get('version', module.path)
+        if installed_version and installed_version != module.version:
+            print('Manager: {}.module version mismatch {} vs {}'.format(module.name, installed_version, module.version))
+            self.state.set('installed', False, module.path)
         return module
 
     def get_active_module(self):
