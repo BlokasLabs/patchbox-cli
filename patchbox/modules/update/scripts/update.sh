@@ -1,4 +1,5 @@
 #!/bin/sh
+exit 1
 SOFTWARE_TO_INSTALL="pisound-btn pisound-ctl amidiauto patchbox-cli"
 sudo apt-get update
 sudo apt-get install $SOFTWARE_TO_INSTALL -y

@@ -26,7 +26,6 @@ def cli(ctx, postupdate):
         run_interactive_cmd(
             ctx,
             command=update_sysem,
-            args=dict(in_wizard=True),
             message="Let's check for Patchbox OS updates first. \n\nChoose NO if you wan't to do this later via 'patchbox > update' option.",
             error="Uups! Something ain't right. Is your Raspberry Pi connected to the internet? \n\nConnect it or skip the updates step for now."
         )
@@ -34,7 +33,7 @@ def cli(ctx, postupdate):
     run_interactive_cmd(
         ctx, 
         command=password_config, 
-        message="\"I changed my password everywhere to 'incorrect.' That way when I forget it, it always reminds me, 'Your password is incorrect.'\" - Don't be this guy, change the default system password. \n\nChoose YES and follow the terminal instructions."
+        message="Security part! \n\nChange the default system password. \n\nChoose YES and follow the terminal instructions."
     )
     run_interactive_cmd(
         ctx, 
@@ -52,7 +51,7 @@ def cli(ctx, postupdate):
     run_interactive_cmd(
         ctx, 
         command=wifi_connect, 
-        message='Do you want to connect to WiFi network? \n\nIf you are connected to your Raspberry Pi via the Patchbox WiFI network, skip this step for now. :)'
+        message='Do you want to connect to WiFi network? \n\nNote: the Patchbox WiFI hotspot will be disabled!'
     )
     run_interactive_cmd(
         ctx, 
