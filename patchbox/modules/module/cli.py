@@ -119,8 +119,8 @@ def stop(ctx):
 @click.pass_context
 @click.argument('name')
 @click.argument('arg', default=False)
-@click.option('--autolaunch/--no-autolaunch', default=True)
-@click.option('--autoinstall/--no-autoinstall', default=True)
+@click.option('--autolaunch/--no-autolaunch', default=True, is_flag=True)
+@click.option('--autoinstall/--no-autoinstall', default=True, is_flag=True)
 def activate(ctx, name, arg, autolaunch, autoinstall):
     """Activate module by name"""
     name = do_ensure_param(ctx, 'name')

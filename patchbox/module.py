@@ -18,7 +18,7 @@ except ImportError:
 
 class ModuleNotInstalled(Exception):
     def __init__(self, module_name, *args):
-        self.message = '{}.module is not installed yet. install it first'.format(
+        self.message = '{}.module is not installed: activate it first'.format(
             module_name)
         super(ModuleNotInstalled, self).__init__(self.message, *args)
 
@@ -372,7 +372,7 @@ class PatchboxModuleManager(object):
                     '{}.module launch argument "{}" is not valid'.format(module.name, arg))
 
         if module.autolaunch == 'path':
-            if not os.path.isfile(arg):
+            if not os.path.isfile(arg) or not os.path.isdir(arg):
                 raise ModuleArgumentError(
                     '{}.module launch argument "{}" is not valid'.format(module.name, arg))
 
@@ -521,6 +521,7 @@ class PatchboxModuleManager(object):
         else:
             print('Manager: no install script declared for {}.module'.format(module.name))
         self.state.set('installed', True, module.path)
+        self.state.set('version', module.version, module.path)
 
     def activate(self, module, autolaunch=True, autoinstall=False):
         if not self.state.get('installed', module.path):

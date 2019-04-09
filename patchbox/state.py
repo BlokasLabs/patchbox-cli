@@ -1,7 +1,5 @@
-import subprocess
 import json
 import os
-import glob
 import dbus
 from patchbox.environment import PatchboxEnvironment as penviron
 
