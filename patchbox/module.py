@@ -513,8 +513,11 @@ class PatchboxModuleManager(object):
             try:
                 subprocess.call(
                     ['sudo', 'chmod', '+x', os.path.join(module.path, module.has_install)])
-                subprocess.call(
+                error = subprocess.call(
                     ['sudo', 'sh', os.path.join(module.path, module.has_install)])
+                if error != 0:
+                    raise ModuleError(
+                        'Failed to install {}.module via {} script'.format(module.name, os.path.join(module.path, module.has_install)))
             except:
                 raise ModuleError(
                     'Failed to install {}.module via {} script'.format(module.name, os.path.join(module.path, module.has_install)))

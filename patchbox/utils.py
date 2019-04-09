@@ -281,7 +281,7 @@ def get_system_service_property(name, prop):
     return subprocess.check_output(['systemctl', 'show', '-p', prop, '--value', name]).strip()
 
 
-def run_interactive_cmd(ctx, command=None, args=None, message='Let\'s begin!', error="Uups! Something ain\'t right. Let\'s try again.", required=False):
+def run_interactive_cmd(ctx, command=None, args=None, message="Let's begin!", error="Oops! Something ain't right. Let's try again.", required=False):
     if required:
         do_msgbox(message)
     while command:
