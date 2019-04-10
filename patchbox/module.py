@@ -2,6 +2,7 @@ import subprocess
 import json
 import os
 from shutil import rmtree, copytree, Error as shutil_error
+from collections import defaultdict
 import glob
 import zipfile
 import tarfile
@@ -58,7 +59,6 @@ class PatchboxModule(object):
     def __init__(self, path):
         self.path = path if path.endswith('/') else path + '/'
         self.name = self.path.split('/')[-2]
-        self.type = 'imported' if self.path.split('/')[-3] == 'imported' else 'original'
 
         self.data = self.parse_module_file()
 
@@ -219,6 +219,7 @@ class PatchboxModuleManager(object):
         self.tmp_path = self.__class__.PATCHBOX_MODULE_TMP_FOLDER
         self.state = PatchboxModuleStateManager()
         self._service_manager = service_manager or self.__class__.DEFAULT_SERVICE_MANAGER()
+        self._module_paths = None
 
     def _verify_path(self, path):
         modules_path = path or self.__class__.PATCHBOX_MODULE_FOLDER
@@ -236,42 +237,38 @@ class PatchboxModuleManager(object):
         return modules_path
     
     def _get_module_paths(self):
-        default = [path for path in glob.glob(self.path + '*') if os.path.isdir(
-            path) and path.split('/')[-1] not in self.__class__.PATCHBOX_MODULE_IGNORED]
+        if self._module_paths:
+            return self._module_paths
 
-        imported = [path for path in glob.glob(self.imp_path + '*') if os.path.isdir(
-            path) and path.split('/')[-1] not in self.__class__.PATCHBOX_MODULE_IGNORED]
+        default = [(path.split('/')[-1], path) for path in glob.glob(self.path + '*') if os.path.isdir(
+            path)]
+
+        imported = [(path.split('/')[-1], path) for path in glob.glob(self.imp_path + '*') if os.path.isdir(
+            path)]
         
-        return default + imported 
+        paths = default + imported
 
-    def get_all_modules(self):
-        modules = []
+        modules = defaultdict(list)
 
-        module_paths = self._get_module_paths()
-
-        for module_path in module_paths:
-            try:
-                module = PatchboxModule(module_path)
-                modules.append(module)
-            except ModuleError as err:
-                pass
-
+        for k, v in paths:
+            if k not in self.__class__.PATCHBOX_MODULE_IGNORED:
+                modules[k].append(v)
+        
+        self._module_paths = modules
+        
         return modules
 
-    def get_module_by_name(self, module_name):
-        paths = self._get_module_paths()
-
-        candidates = [path for path in paths if path.endswith(module_name)]
-
-        if len(candidates) < 1:
-            raise ModuleNotFound(module_name)
-        elif len(candidates) == 1:
-            path = candidates[0]
-        if len(candidates) > 1:
-            print('Manager: multiple candidates for {}.module found'.format(module_name))
+    def _pick_module_path_from_paths(self, module_name, paths, silent=False):
+        path = None
+           
+        if len(paths) == 1:
+            path = paths[0]
+        elif len(paths) > 1:
+            if not silent:
+                print('Manager: multiple paths for {}.module found: {}'.format(module_name, paths))
             path = None
             version = None
-            for can in candidates:
+            for can in paths:
                 try:
                     tmp_module = PatchboxModule(can)
                     if tmp_module.version >= version:
@@ -280,8 +277,35 @@ class PatchboxModuleManager(object):
                 except Exception as err:
                     print('Manager: ERROR: {}'.format(err))
                     continue
+            if not silent:
+                print('Manager: {}.module ({}, {}) choosen'.format(module_name, path, version))
+        
+        if not path and not silent:
+            raise ModuleNotFound(module_name)
+        
+        return path
 
-            print('Manager: {}.module ({}, {}) choosen'.format(module_name, path, version))
+    def get_all_modules(self):
+        modules = []
+
+        module_paths = self._get_module_paths()
+
+        for name, paths in module_paths.iteritems():
+            path = self._pick_module_path_from_paths(name, paths, silent=True)
+            try:
+                module = PatchboxModule(path)
+                modules.append(module)
+            except ModuleError as err:
+                pass
+
+        return modules
+
+    def get_module_by_name(self, module_name):
+        paths = self._get_module_paths().get(module_name)
+        if not paths:
+            raise ModuleNotFound(module_name)
+        
+        path = self._pick_module_path_from_paths(module_name, paths)
 
         return self.get_module_by_path(path)
     

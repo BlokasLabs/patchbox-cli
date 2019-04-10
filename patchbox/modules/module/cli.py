@@ -154,7 +154,7 @@ def config(ctx):
     if not isinstance(manager, PatchboxModuleManager):
         manager = PatchboxModuleManager()
     
-    options = [{'value': module.path, 'title': '{}: {} (version: {}-{})'.format(module.name, module.description, module.version, module.type)} for module in manager.get_all_modules()]
+    options = [{'value': module.path, 'title': '{}: {} v{}'.format(module.name, module.description, module.version)} for module in manager.get_all_modules()]
     options = sorted(options, key=lambda k: k.get('title')) 
     options.append({'value': 'none', 'title': 'none: Default Patchbox OS environment'})
     
