@@ -25,7 +25,7 @@ def cli(ctx, postupdate):
         run_interactive_cmd(
             ctx,
             command=update_sysem,
-            message="Let's check for Patchbox OS updates first. \n\nChoose NO if you wan't to do this later via 'patchbox > update' option.",
+            message="Let's check for Patchbox OS updates first. \n\nChoose NO if you want to do this later via 'patchbox > update' option.",
             error="Oops! Something ain't right. Is your Raspberry Pi connected to the internet? \n\nConnect it or skip the updates step for now."
         )
 
@@ -55,7 +55,7 @@ def cli(ctx, postupdate):
     run_interactive_cmd(
         ctx, 
         command=module_config, 
-        message='Meet Patchbox Modules! \n\nPatchbox Modules are different environments that are activated on boot \nand will allow you to use your Raspberry Pi box in many different ways. \n\nWe have prepared few modules already and together with Patchbox community hope to introduce many more in the future! \n\nNow you will be able to choose one.',
+        message='Meet Patchbox Modules! \n\nPatchbox Modules are different environments that are activated on boot \nand will allow you to use your Raspberry Pi box in many different ways. \n\nWe have a couple modules already and together with the Patchbox community we hope to introduce many more in the future! \n\nNext step is to choose one.',
         required=True
     )
 
