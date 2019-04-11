@@ -37,7 +37,7 @@ def cli(ctx, postupdate):
     run_interactive_cmd(
         ctx, 
         command=jack_config, 
-        message='Now pick the default system sound card. Both USB and HAT-type cards are supported. \nChoose OK and follow the instructions. This step is required. \n\nYou will be able to change these settings later via \'patchbox > jack > config\' option.', 
+        message='Now pick the default system sound card. You may use external USB audio cards and HAT-type cards. \n\nIf your HAT card is not listed, most likely you have to enable it by editing /boot/config.txt and reboot,\nrefer to the support pages of your card.\n\nChoose OK and follow the instructions. This step is required. \n\nYou will be able to change these settings later via \'patchbox > jack > config\' option.',
         error="It seems that the Jack server is busy or the settings provided are not supported by your sound card. \n\nLet's try again.",
         required=True
     )
@@ -50,12 +50,12 @@ def cli(ctx, postupdate):
     run_interactive_cmd(
         ctx, 
         command=wifi_connect, 
-        message='Do you want to connect to WiFi network? \n\nNote: the Patchbox WiFI hotspot will be disabled!'
+        message='Do you want to connect to WiFi network? \n\nNote: the Patchbox WiFi hotspot will be disabled!'
     )
     run_interactive_cmd(
         ctx, 
         command=module_config, 
-        message='Meet Patchbox Modules! \n\nPatchbox Modules are different environments that are activated on boot \nand will allow you to use your Raspberry Pi box in many different ways. \n\nWe have a couple modules already and together with the Patchbox community we hope to introduce many more in the future! \n\nNext step is to choose one.',
+        message='Meet Patchbox Modules! \n\nPatchbox Modules are different environments that are activated on boot \nand will allow you to use your Raspberry Pi box in many different ways. \n\nWe have a couple modules already and together with the Patchbox community\nwe hope to introduce many more in the future! \n\nNext step is to choose one.',
         required=True
     )
 
