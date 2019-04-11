@@ -24,7 +24,7 @@ class PatchboxService(object):
         elif isinstance(service_obj, dict):
             if not service_obj.get('service'):
                 raise ServiceError('service declaration ({}) is not valid'.format(service_obj))
-            self.name = service_obj.get('service')
+            self.name = str(service_obj.get('service'))
 
             if service_obj.get('config'):
                 self.environ_value = service_obj.get('config')
@@ -34,6 +34,9 @@ class PatchboxService(object):
                 self.auto_start = service_obj.get('auto_start')
         else:
             raise ServiceError('service declaration ({}) is not valid'.format(service_obj))
+    
+    def __repr__(self):
+        return '<PatchboxService: {}, {}, {}, {}>'.format(self.name, self.auto_start, self.environ_value, self.environ_param)
     
     @staticmethod
     def get_env_param(service_name):
@@ -74,8 +77,9 @@ class PatchboxServiceManager(object):
             return True
         else:
             if pservice.environ_param:
-                penviron.set(pservice.environ_param, pservice.environ_value)     
-                self.restart_unit(pservice, mode=mode)
+                if penviron.get(pservice.environ_param, debug=False) != pservice.environ_value:
+                    penviron.set(pservice.environ_param, pservice.environ_value)     
+                    self.restart_unit(pservice, mode=mode)
         return True
 
     def stop_disable_unit(self, pservice):

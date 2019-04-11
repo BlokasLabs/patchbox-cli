@@ -15,12 +15,12 @@ class PisoundButton(object):
         self.path = path or penviron.get('PISOUND_BTN_CFG', debug=False) or settings.BTN_CFG
         self.system_dir = settings.BTN_SCRIPTS_DIR
         self.module_dir = None
-        self.module = None
         
         active_module = penviron.get('PATCHBOX_MODULE_ACTIVE', debug=False)
         if active_module:
-            self.module = active_module
-            self.module_dir = '/usr/local/patchbox-modules/{}/pisound-btn/'.format(active_module)
+            self.module_dir = os.path.join(active_module, 'pisound-btn/')
+        
+        print('BUTTON_INIT', self.path)
 
 
     def _get_system_actions(self):
