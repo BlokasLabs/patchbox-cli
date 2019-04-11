@@ -324,7 +324,10 @@ class PatchboxModuleManager(object):
         return None
 
     def get_active_module_path(self):
-        return self.state.get('active_module')
+        path = self.state.get('active_module')
+        if not os.path.exists(path):
+            return None
+        return path
 
     def init(self):
         module = self.get_active_module()
