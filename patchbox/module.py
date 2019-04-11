@@ -547,16 +547,6 @@ class PatchboxModuleManager(object):
 
         active_path = self.get_active_module_path()
 
-        if active_path and active_path == module.path:
-            print('Manager: {}.module is active'.format(module.name))
-            if module.autolaunch and autolaunch:
-                try:
-                    self._launch_module(module)
-                except (ServiceError, ModuleError, ModuleArgumentError) as error:
-                    print('Manager: ERROR: {}'.format(error))
-                    self._stop_module(module)
-            return
-
         if active_path and active_path != module.path:
             active = self.get_module_by_path(active_path)
             self._stop_module(active)
