@@ -171,11 +171,21 @@ def config(ctx):
 
     module = manager.get_module_by_path(value.get('value'))
     manager.activate(module, autolaunch=False, autoinstall=True)
-    if module.autolaunch:
 
+    for ser in [s for s in module.get_module_services() if s.auto_start == False]:
+        
+        close, value = do_yesno('Do you want to start {} now?'.format(ser.name))
+        if close == 0:
+            manager._service_manager.enable_start_unit(ser)
+        else:
+            manager._service_manager.stop_disable_unit(ser)
+
+    if module.autolaunch:
         arg = None
+        
         if module.autolaunch == 'auto':
             pass
+
         if module.autolaunch == 'list':
             options = manager.list(module)
             close, arg = do_menu('Choose an option for autolaunch on boot', options, cancel='Cancel')
@@ -183,12 +193,14 @@ def config(ctx):
                 manager._set_autolaunch_argument(module, None)
                 do_go_back_if_ineractive(ctx, steps=2)
                 return
+        
         if module.autolaunch == 'argument':
             close, arg = do_inputbox('Enter an argument for autolaunch on boot')
             if close:
                 manager._set_autolaunch_argument(module, None)
                 do_go_back_if_ineractive(ctx, steps=2)
                 return
+        
         if module.autolaunch == 'path':
             while True:
                 close, arg = do_inputbox('Enter a path for autolaunch on boot')
@@ -196,9 +208,11 @@ def config(ctx):
                     manager._set_autolaunch_argument(module, None)
                     do_go_back_if_ineractive(ctx, steps=2)
                     return
+                
                 if os.path.isfile(arg) or os.path.isdir(arg):
                     break
                 do_msgbox('Argument must be a valid file path')
+        
         if arg:
             manager._set_autolaunch_argument(module, arg)            
         
