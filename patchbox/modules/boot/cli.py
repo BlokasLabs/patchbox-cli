@@ -12,15 +12,18 @@ def cli(ctx):
 
 
 @cli.command()
-@click.argument('option', type=click.Choice(['desktop', 'console']))
+@click.argument('option', type=click.Choice(['desktop', 'desktop-autologin', 'console', 'console-autologin']))
 @click.pass_context
 def environment(ctx, option):
     """Choose Boot environment (Desktop or Console)"""
     option = do_ensure_param(ctx, 'option')
-    if option == 'desktop':
-        subprocess.call(['sudo', 'chmod', '+x', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_desktop.sh'])
-        subprocess.call(['sudo', 'sh', '-c', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_desktop.sh'])
-    if option == 'console':
-        subprocess.call(['sudo', 'chmod', '+x', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_console.sh'])
-        subprocess.call(['sudo', 'sh', '-c', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_console.sh'])
-    do_go_back_if_ineractive(silent=True)
+    options = {
+        'desktop': '/scripts/set_boot_to_desktop.sh',
+        'desktop-autologin': '/scripts/set_boot_to_desktop_autologin.sh',
+        'console': '/scripts/set_boot_to_console.sh',
+        'console-autologin': '/scripts/set_boot_to_console_autologin.sh'
+    }
+    if options.get(option):
+        subprocess.call(['sudo', 'chmod', '+x', os.path.dirname(os.path.realpath(__file__)) + options[option]])
+        subprocess.call(['sudo', 'sh', os.path.dirname(os.path.realpath(__file__)) + options[option], os.environ['SUDO_USER']])    
+    do_go_back_if_ineractive()

@@ -6,10 +6,14 @@ if [ -z "$USER" ]; then
     exit 1
 fi
 
-echo 'Setting boot environment to Console, requiring user "'$USER'" to login'
+echo 'Setting boot environment to Console, automatically logged in as "'$USER'" user'
 
 systemctl set-default multi-user.target
 ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
-rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
+cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOF
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin $USER --noclear %I \$TERM
+EOF
 
 echo 'Done!'
