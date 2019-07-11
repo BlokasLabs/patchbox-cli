@@ -82,8 +82,9 @@ class DialogDisplay:
 
 
 class InputDialogDisplay(DialogDisplay):
-    def __init__(self, text):
-        self.edit = urwid.Edit()
+    def __init__(self, text, edit_text=None):
+        edit_text = edit_text or ''
+        self.edit = urwid.Edit(edit_text=edit_text)
         body = urwid.ListBox([self.edit])
         body = urwid.AttrWrap(body, 'selectable', 'focustext')
 
@@ -212,8 +213,8 @@ def do_checklist(text, *items):
     return d.main()
 
 
-def do_inputbox(text):
-    d = InputDialogDisplay(text)
+def do_inputbox(text, edit_text=None):
+    d = InputDialogDisplay(text, edit_text)
     d.add_buttons([("OK", 0), ("Cancel", 1)])
     return d.main()
 

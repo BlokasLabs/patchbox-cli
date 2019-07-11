@@ -251,6 +251,29 @@ def get_hs_config():
                         {'title': param[0] + ': ' + param[1], 'key': param[0], 'value': param[1]})
     return items
 
+def get_hs_name():
+    with open(settings.HS_CFG, 'r') as f:
+        for line in f:
+            if line.startswith('ssid'):
+                return line.strip().split('=')[1]
+    return None
+
+
+def get_hs_channel():
+    with open(settings.HS_CFG, 'r') as f:
+        for line in f:
+            if line.startswith('channel'):
+                return line.strip().split('=')[1]
+    return None
+
+
+def get_hs_password():
+    with open(settings.HS_CFG, 'r') as f:
+        for line in f:
+            if line.startswith('wpa_passphrase'):
+                return line.strip().split('=')[1]
+    return None
+
 
 @click.group(invoke_without_command=True)
 @click.pass_context
@@ -372,13 +395,13 @@ def do_hotspot_enable():
         click.echo('Hotspot enabled.', err=True)
 
 
-def do_hotspot_disable(reconnect=True):
+def do_hotspot_disable(wifi_reconnect=True):
     click.echo('Hotspot disable started.', err=True)
-    error, output = run_cmd(['sudo', 'systemctl', 'stop', 'wifi-hotspot'])
-    error, output = run_cmd(['sudo', 'systemctl', 'disable', 'wifi-hotspot'])
-    if not error:
+    err1, output = run_cmd(['sudo', 'systemctl', 'stop', 'wifi-hotspot'])
+    err2, output = run_cmd(['sudo', 'systemctl', 'disable', 'wifi-hotspot'])
+    if not err1 and not err2:
         click.echo('Hotspot disabled.', err=True)
-    if reconnect:
+    if wifi_reconnect:
         try:
             do_reconnect(hotspot_fallback=False)
         except:
@@ -406,7 +429,7 @@ def hotspot_status():
     do_go_back_if_ineractive()
 
 
-def update_hs_config(param, value):
+def update_hs_param(param, value):
     with open(settings.HS_CFG, 'r') as f:
         data = f.readlines()
         for i, line in enumerate(data):
@@ -415,12 +438,31 @@ def update_hs_config(param, value):
                 break
     with open(settings.HS_CFG, 'w') as f:
         f.writelines(data)
+    click.echo('Hotspot {} -> {}.'.format(param, value), err=True)
+
+def validate_name(ctx, param, value):
+    if value and len(value) > 0:
+        return value
+    raise click.BadParameter('Name can\'t be empty ')
+
+def validate_password(ctx, param, value):
+    if value and 7 < len(value) < 64:
+        return value
+    raise click.BadParameter('Password must be 8-to-63 characters long')
+
+def validate_channel(ctx, param, value):
+    try:
+        if value and 0 < int(value) < 15:
+            return value
+        raise click.BadParameter('Channel must be in 1-14 range')
+    except:
+        raise click.BadParameter('Channel must be in 1-14 range')
 
 
 @hotspot.command('setup')
-@click.option('--name', help='Hotspot name (SSID)')
-@click.option('--channel', help='Hotspot channel (default=6)', default=6, type=int)
-@click.option('--password', help='Hotspot WiFi network password')
+@click.option('--name', help='Hotspot name (SSID)', callback=validate_name, default=get_hs_name)
+@click.option('--channel', help='Hotspot channel (default=6)', callback=validate_channel, default=get_hs_channel)
+@click.option('--password', help='Hotspot WiFi network password', callback=validate_password, default=get_hs_password)
 @click.pass_context
 def hotspot_config(ctx, name, channel, password):
     """Change WiFi hotspot settings"""
@@ -430,13 +472,13 @@ def hotspot_config(ctx, name, channel, password):
     channel = do_ensure_param(ctx, 'channel')
     password = do_ensure_param(ctx, 'password')
     if name:
-        update_hs_config('ssid', name)
+        update_hs_param('ssid', name)
     if channel:
-        update_hs_config('channel', channel)
+        update_hs_param('channel', channel)
     if password:
-        update_hs_config('wpa_passphrase', password)
+        update_hs_param('wpa_passphrase', password)
     if is_hotspot_active():
-        do_hotspot_disable()
+        do_hotspot_disable(wifi_reconnect=False)
         do_hotspot_enable()
-    do_go_back_if_ineractive(ctx, silent=True)
+    do_go_back_if_ineractive(ctx)
 

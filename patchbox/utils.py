@@ -209,47 +209,65 @@ def do_group_menu(ctx, cancel=None, ok=None):
             click.echo(ctx.command.get_help(ctx))
 
 
-def do_ensure_param(ctx, name):
+def do_ensure_param(ctx, name, default=None):
     param = None
     close = None
     value = ctx.params.get(name)
 
-    if value:
-        return value
-
+    # check if param is expected
     for p in ctx.command.params:
         if p.name == name:
             param = p
             break
-
     if not param:
         raise click.ClickException(
-            '"{}" parameter is not registered via decorator.'.format(name))
+            '"{}" parameter is not registered via click decorator.'.format(name))
+    
+    # return in not interactive
+    default_value = param.get_default(ctx)
+    if not ctx.meta.get('interactive', False):
+        if value:
+            return value
+        return default_value
 
+    # prepare param help text
     message = '{}'.format(ctx.command.help)
     if hasattr(param, 'help'):
         message += '\n{}'.format(param.help)
+    
+    # get final default value
+    if hasattr(default, '__call__'):
+        default_value = default()
+    
+    # start param entry till param is valid or close
+    while True:
 
-    if not ctx.meta.get('interactive', False):
-        value = param.get_default(ctx)
-        return value
+        if isinstance(param.type, click.Choice):
+            close, value = views.do_menu(
+                message, param.type.get_choices(), cancel='Cancel')
+            if param.type == dict:
+                for option in param.choices:
+                    if option.get('value') == value:
+                        value = option
 
-    if isinstance(param.type, click.Choice):
-        close, value = views.do_menu(
-            message, param.type.get_choices(), cancel='Cancel')
-        if param.type == dict:
-            for option in param.choices:
-                if option.get('value') == value:
-                    value = option
+        if isinstance(param.type, click.types.StringParamType):
+            close, value = views.do_inputbox(message, edit_text=default_value)
 
-    if isinstance(param.type, click.types.StringParamType):
-        close, value = views.do_inputbox(message)
+        if isinstance(param.type, click.types.IntParamType):
+            close, value = views.do_inputbox(message, edit_text=default_value)
 
-    if isinstance(param.type, click.types.IntParamType):
-        close, value = views.do_inputbox(message)
-
-    if close:
-        go_home_or_exit(ctx)
+        if close:
+            go_home_or_exit(ctx)
+        
+        if param.callback:
+            try:
+                value = param.callback(ctx, param, value)
+                break
+            except click.BadParameter as e:
+                do_msgbox('Oops! {}'.format(str(e)))
+                continue
+        else:
+            break
 
     return value
 

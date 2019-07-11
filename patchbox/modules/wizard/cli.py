@@ -55,7 +55,7 @@ def cli(ctx, postupdate):
     run_interactive_cmd(
         ctx, 
         command=module_config, 
-        message='Meet Patchbox Modules! \n\nPatchbox Modules are different environments that are activated on boot \nand will allow you to use your Raspberry Pi box in many different ways. \n\nWe have a couple modules already and together with the Patchbox community\nwe hope to introduce many more in the future! \n\nNext step is to choose one.',
+        message='Meet Patchbox Modules! \n\nPatchbox Modules are different environments that are activated on boot \nand will allow you to use your Raspberry Pi box in many different ways. \n\nWe have prepared a couple modules already and together with the Patchbox community\nwe hope to introduce many more in the future! \n\nNext step is to choose one.',
         required=True
     )
 
