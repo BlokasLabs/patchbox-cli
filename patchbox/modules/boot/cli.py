@@ -18,9 +18,7 @@ def environment(ctx, option):
     """Choose Boot environment (Desktop or Console)"""
     option = do_ensure_param(ctx, 'option')
     if option == 'desktop':
-        subprocess.call(['sudo', 'chmod', '+x', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_desktop.sh'])
-        subprocess.call(['sudo', 'sh', '-c', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_desktop.sh'])
+        subprocess.call([os.path.join(os.path.dirname(os.path.realpath(__file__)), 'scripts/set_boot_to_desktop.sh')])
     if option == 'console':
-        subprocess.call(['sudo', 'chmod', '+x', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_console.sh'])
-        subprocess.call(['sudo', 'sh', '-c', os.path.dirname(os.path.realpath(__file__)) + '/scripts/set_boot_to_console.sh'])
+        subprocess.call([os.path.join(os.path.dirname(os.path.realpath(__file__)), 'scripts/set_boot_to_console.sh')])
     do_go_back_if_ineractive(silent=True)

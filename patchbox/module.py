@@ -290,7 +290,7 @@ class PatchboxModuleManager(object):
 
         module_paths = self._get_module_paths()
 
-        for name, paths in module_paths.iteritems():
+        for name, paths in module_paths.items():
             path = self._pick_module_path_from_paths(name, paths, silent=True)
             try:
                 module = PatchboxModule(path)
