@@ -8,7 +8,7 @@ setup(
 	packages=find_packages(),
 	include_package_data=True,
 	install_requires=[
-		'click', 'urwid', 'dbus-python'
+		'click', 'urwid', 'dbus-python', 'python-dotenv'
 	],
 	package_data={
 			'patchbox.modules.boot': [

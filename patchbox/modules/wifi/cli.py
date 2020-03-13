@@ -21,7 +21,7 @@ def get_default_iface():
 
 def get_wifi_country():
     try:
-        return subprocess.check_output(['grep', 'country=', '/etc/wpa_supplicant/wpa_supplicant.conf']).split('=')[-1].strip()
+        return subprocess.check_output(['grep', 'country=', '/etc/wpa_supplicant/wpa_supplicant.conf']).split('=')[-1].strip().decode('utf-8')
     except:
         return 'unset'
 
@@ -29,7 +29,7 @@ def get_wifi_country():
 def get_wifi_countries():
     try:
         countries = []
-        with open('/usr/share/zoneinfo/iso3166.tab', 'r') as f:
+        with open('/usr/share/zoneinfo/iso3166.tab', 'rt') as f:
             for line in f.readlines():
                 if line.startswith('#'):
                     continue
@@ -66,6 +66,7 @@ def get_networks():
         cmd = subprocess.Popen(['wpa_cli', '-i', get_default_iface(),
                                 'list_networks'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         for line in cmd.stdout.readlines():
+            line = line.decode('utf-8')
             if line.startswith('network'):
                 continue
             try:
@@ -99,7 +100,7 @@ def do_connect(ssid, password):
         raise click.ClickException('Network name is invalid!')
     try:
         new_id = subprocess.check_output(
-            ['wpa_cli', '-i', get_default_iface(), 'add_network']).strip()
+            ['wpa_cli', '-i', get_default_iface(), 'add_network']).strip().decode('utf-8')
         click.echo('Network added.', err=True)
     except:
         raise click.ClickException('Adding new network failed!')
@@ -138,7 +139,7 @@ def is_wifi_supported():
 
 def is_connected():
     try:
-        return subprocess.check_output(['cat', '/sys/class/net/{}/operstate'.format(get_default_iface())]).strip() == 'up'
+        return subprocess.check_output(['cat', '/sys/class/net/{}/operstate'.format(get_default_iface())]).strip().decode('utf-8') == 'up'
     except:
         return False
 
@@ -206,7 +207,7 @@ def do_disable():
 
 def get_wpa_status():
     try:
-        return subprocess.check_output(['wpa_cli', '-i', get_default_iface(), 'status']).strip()
+        return subprocess.check_output(['wpa_cli', '-i', get_default_iface(), 'status']).strip().decode('utf-8')
     except:
         return None
 
@@ -225,7 +226,7 @@ def get_status():
 
 def get_config():
     try:
-        return subprocess.check_output(['cat', '/etc/wpa_supplicant/wpa_supplicant.conf']).strip()
+        return subprocess.check_output(['cat', '/etc/wpa_supplicant/wpa_supplicant.conf']).strip().decode('utf-8')
     except:
         return None
 
@@ -234,7 +235,7 @@ def get_ssids():
     click.echo('Network scan started.', err=True)
     try:
         scan = subprocess.check_output(
-            ['sudo', 'iwlist', get_default_iface(), 'scan'])
+            ['sudo', 'iwlist', get_default_iface(), 'scan']).decode('utf-8')
         return re.findall('ESSID:"([^"]*)"', scan)
     except:
         raise click.ClickException('Scan failed!')
@@ -410,6 +411,7 @@ def update_hs_config(param, value):
     with open(settings.HS_CFG, 'r') as f:
         data = f.readlines()
         for i, line in enumerate(data):
+            line = line.decode('utf-8')
             if line.startswith(param):
                 data[i] = param + '=' + value + '\n'
                 break

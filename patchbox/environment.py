@@ -4,7 +4,7 @@ class PatchboxEnvironment(object):
     def get(param, debug=True):
         param = str(param)
 
-        with open('/etc/environment', 'r') as f:
+        with open('/etc/environment', 'rt') as f:
             for line in f:
                 if len(line.strip()) != 0:
                     if line.startswith(param):
@@ -18,7 +18,7 @@ class PatchboxEnvironment(object):
 
     @staticmethod
     def set(param, value, debug=True):
-        with open('/etc/environment', 'r') as f:
+        with open('/etc/environment', 'rt') as f:
             data = f.readlines()
             changed = None
             for i, line in enumerate(data):

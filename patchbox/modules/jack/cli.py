@@ -31,20 +31,22 @@ def jack_start():
         subprocess.call(['sudo', 'systemctl', 'start', 'jack'])
         click.echo('Jack service started!')
     except:
+        raise
         raise click.ClickException('Failed to start Jack service!')
 
 
 def jack_verify():
     try:
         click.echo('Waiting for Jack to boot...', err=True)
-        time.sleep(5)
-        state = get_system_service_property('jack', 'SubState')
-        if state == 'running':
-            click.echo('Jack is running!', err=True)
+        ec = subprocess.call(['jack_wait','-w','-t','5'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        if ec == 0:
+            state = get_system_service_property('jack', 'SubState')
+            if state == 'running':
+                click.echo('Jack is running!', err=True)
         else:
             raise click.ClickException('Failed to start Jack service! Please check Jack configuration.')
     except:
-        raise click.ClickException('Failed to start Jack service!')
+        raise click.ClickException('Failed to start Jack service! Try different settings!')
 
 
 
@@ -91,7 +93,7 @@ def get_jack_config():
 
 
 def update_jack_config(param, value):
-    with open('/etc/jackdrc', 'r') as f:
+    with open('/etc/jackdrc', 'rt') as f:
         data = f.readlines()
         for i, line in enumerate(data):
             if line.startswith('exec'):
@@ -181,4 +183,3 @@ def config(ctx, card, rate, buffer, period):
         jack_restart()
         jack_verify()
     do_go_back_if_ineractive(ctx)
-

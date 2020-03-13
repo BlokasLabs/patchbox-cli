@@ -7,7 +7,7 @@ import click
 from patchbox import views
 from click.termui import prompt, confirm
 from patchbox.views import do_msgbox, do_yesno
-
+from dotenv import load_dotenv
 
 class PatchboxChoice(click.ParamType):
 	"""Dictionary support for click.Choice"""
@@ -108,16 +108,18 @@ modules_folder = os.path.abspath(
 class PatchboxHomeGroup(click.MultiCommand):
 
 	def __init__(self, *args, **kwargs):
-		self.root_check()
+		self.root_fix()
 		self.is_home = True
 		super(PatchboxHomeGroup, self).__init__(
 			invoke_without_command=True, *args, **kwargs)
 
-	def root_check(self):
+	def root_fix(self):
 		if os.getuid() != 0:
 			args = sys.argv
 			args.insert(0, 'sudo')
 			os.execvp('sudo', args)
+		else:
+			load_dotenv(dotenv_path='/etc/environment')
 
 	def list_commands(self, ctx):
 		rv = []
@@ -139,7 +141,7 @@ class PatchboxHomeGroup(click.MultiCommand):
 def run_cmd(list, silent=True):
 	""" Runs bash command, returns is_error, output"""
 	try:
-		output = subprocess.check_output(list)
+		output = subprocess.check_output(list).decode('utf-8')
 		return False, output
 	except:
 		if not silent:
@@ -277,7 +279,7 @@ def do_go_back_if_ineractive(ctx=None, silent=False, steps=1):
 
 
 def get_system_service_property(name, prop):
-	return subprocess.check_output(['systemctl', 'show', '-p', prop, '--value', name]).strip()
+	return subprocess.check_output(['systemctl', 'show', '-p', prop, '--value', name]).strip().decode('utf-8')
 
 
 def run_interactive_cmd(ctx, command=None, args=None, message="Let's begin!", error="Oops! Something ain't right. Let's try again.", required=False):

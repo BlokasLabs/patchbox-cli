@@ -7,7 +7,7 @@ from patchbox.utils import do_group_menu, do_go_back_if_ineractive
 
 
 def get_system_service_property(name, prop):
-    return subprocess.check_output(['systemctl', 'show', '-p', prop, '--value', name]).strip()
+    return subprocess.check_output(['systemctl', 'show', '-p', prop, '--value', name]).strip().decode('utf-8')
 
 
 def get_devices():
@@ -15,6 +15,7 @@ def get_devices():
         devices = []
         cmd = subprocess.Popen(['rfkill', 'list', 'bluetooth'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         for line in cmd.stdout.readlines():
+            line = line.decode('utf-8')
             if 'Bluetooth' in line:
                 devices.append(line.split(':')[1].strip())
         return devices 
@@ -31,9 +32,10 @@ def get_rfkill_bluetooth_status():
     try:
         cmd = subprocess.Popen(['rfkill', 'list', 'bluetooth'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         for line in cmd.stdout.readlines():
+            line = line.decode('utf-8')
             if not 'Bluetooth' in line:
                 result += 'bluetooth_' + line.lower().strip().replace(': ', '=').replace(' ', '_') + '\n'
-        return result  
+        return result
     except:
         click.echo("'rfkill' utility unresponsive.", err=True)
         return result

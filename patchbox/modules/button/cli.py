@@ -60,7 +60,7 @@ class PisoundButton(object):
                 if str(key) not in data:
                     missing_keys.append(key)
 
-        with open(self.path, 'r') as f:
+        with open(self.path, 'rt') as f:
             lines = f.readlines()
 
         if len(missing_keys) > 0:
@@ -100,7 +100,7 @@ class PisoundButton(object):
         return items
 
     def update_config(self, param, value):
-        with open(self.path, 'r') as f:
+        with open(self.path, 'rt') as f:
             data = f.readlines()
             for i, line in enumerate(data):
                 if line.startswith(param):
