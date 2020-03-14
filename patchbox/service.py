@@ -17,9 +17,7 @@ class PatchboxService(object):
         self.environ_param = None
         self.auto_start = True
 
-        if isinstance(service_obj, unicode):
-            self.name = str(service_obj)
-        elif isinstance(service_obj, str):
+        if isinstance(service_obj, str):
             self.name = service_obj
         elif isinstance(service_obj, dict):
             if not service_obj.get('service'):

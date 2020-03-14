@@ -432,7 +432,7 @@ class PatchboxModuleManager(object):
         if module.has_list:
             try:
                 output = subprocess.check_output(
-                    ['sh', module.path + module.has_list])
+                    ['sh', module.path + module.has_list]).decode('utf-8')
                 return [item for item in output.rstrip().split('\n') if item]
             except:
                 raise ModuleError(
