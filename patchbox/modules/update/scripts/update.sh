@@ -1,6 +1,16 @@
 #!/bin/sh
-SOFTWARE_TO_INSTALL="pisound-btn pisound-ctl amidiauto patchbox-cli"
+
+install_repo() {
+	if [ ! -d "$3" ]; then
+		echo "Cloning $1 repository from $2..."
+		git clone "$2" "$3"
+	else
+		echo "Updating $1 repository with latest stuff in $2..."
+		cd $3 && git -c user.name="apt-get" -c user.email="apt@get" stash && git pull
+	fi
+}
+
+install_repo patchbox-modules https://github.com/BlokasLabs/patchbox-modules /usr/local/patchbox-modules
+
 sudo apt-get update
-sudo apt-get install $SOFTWARE_TO_INSTALL -y
-cd /usr/local/patchbox-cli && git pull
-cd /usr/local/patchbox-modules && git pull
+sudo apt-get install patchbox -y --no-install-recommends
