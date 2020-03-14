@@ -29,6 +29,15 @@ def get_version():
         return 'Pisound Not Found'
 
 
+def get_hw_version():
+    try:
+        with open('/sys/kernel/pisound/hw_version', 'r') as f:
+            data = f.read().replace('\n', '')
+        return data
+    except:
+        return 'Pisound Not Found'
+
+
 def get_btn_version():
     try:
         check = subprocess.check_output(['which', 'pisound-btn'])
@@ -63,9 +72,9 @@ def cli():
     message = 'IP Address: {}'\
         '\nHostname: {}'.format(get_ip(), get_hostname())
     if is_pisound():
-        message += '\nPisound Button Version: {}'\
+        message += '\nPisound Button Version: {}\nPisound Hardware Version: {}'\
             '\nPisound Server Version: {}\nPisound Firmware Version: {}'\
-            '\nPisound Serial Number: {}'.format(get_btn_version(), get_ctl_version(
+            '\nPisound Serial Number: {}'.format(get_btn_version(), get_hw_version(), get_ctl_version(
             ), get_version(), get_serial())
     click.echo(message)
     do_go_back_if_ineractive()
