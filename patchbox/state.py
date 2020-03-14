@@ -9,17 +9,28 @@ class PatchboxModuleStateManager(object):
     DEFAULT_STATE_DIR = '/root/.patchbox/'
     DEFAULT_STATE_FILE = 'state.json'
 
+    @staticmethod
+    def init_state_file(path):
+        with open(path, 'wt') as f:
+            json.dump(
+                {'type': 'PatchboxModuleManagerStateFile', 'modules': {}}, f)
+
     def __init__(self, path=None):
         self.path = path or self.__class__.DEFAULT_STATE_DIR + \
             self.__class__.DEFAULT_STATE_FILE
         if not os.path.isfile(self.path):
             if not os.path.exists(self.__class__.DEFAULT_STATE_DIR):
                 os.makedirs(self.__class__.DEFAULT_STATE_DIR)
+            self.init_state_file(self.path)
             with open(self.path, 'w') as f:
                 json.dump(
                     {'type': 'PatchboxModuleManagerStateFile', 'modules': {}}, f)
-        with open(self.path) as f:
-            self.data = json.load(f)
+        with open(self.path, 'rt') as f:
+            try:
+                self.data = json.load(f)
+            except:
+                self.init_state_file(self.path)
+                self.data = json.load(f)
 
     def set(self, param, value, module_name=None):
         if module_name:
