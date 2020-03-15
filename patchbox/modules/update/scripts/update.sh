@@ -12,5 +12,5 @@ install_repo() {
 
 install_repo patchbox-modules https://github.com/BlokasLabs/patchbox-modules /usr/local/patchbox-modules
 
-sudo apt-get update
-sudo apt-get install patchbox -y --no-install-recommends
+apt-get update
+apt-get install patchbox patchbox-cli -y --no-install-recommends
