@@ -67,7 +67,7 @@ def active(ctx):
 
 @cli.command()
 @click.pass_context
-@click.argument('path', type=click.Path(exists=True))
+@click.argument('path')
 def install(ctx, path):
     """Install module from file"""
     try:

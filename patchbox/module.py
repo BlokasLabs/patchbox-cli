@@ -1,11 +1,17 @@
 import subprocess
 import json
 import os
+import requests
 from shutil import rmtree, copytree, Error as shutil_error
 from collections import defaultdict
 import glob
 import zipfile
 import tarfile
+import urllib
+from urllib.parse import urlparse
+from pathlib import Path
+import tempfile
+from enum import Enum
 from patchbox.state import PatchboxModuleStateManager
 from patchbox.service import PatchboxServiceManager, PatchboxService, ServiceError
 from patchbox import settings
@@ -217,6 +223,8 @@ class PatchboxModuleManager(object):
         self.path = self._verify_path(path)
         self.imp_path = os.path.join(self.path, 'imported/')
         self.tmp_path = self.__class__.PATCHBOX_MODULE_TMP_FOLDER
+        if not os.path.isdir(self.tmp_path):
+            os.mkdir(self.tmp_path)
         self.state = PatchboxModuleStateManager()
         self._service_manager = service_manager or self.__class__.DEFAULT_SERVICE_MANAGER()
         self._module_paths = None
@@ -440,49 +448,108 @@ class PatchboxModuleManager(object):
         raise ModuleManagerError(
             '{}.module does not support list command'.format(module.name))
 
+    @staticmethod
+    def url_is_git(url):
+        try:
+            proc = subprocess.Popen(['git', 'ls-remote', url], stdout=DEVNULL, stderr=DEVNULL, env={"GIT_ASKPASS": "true"})
+            return proc.wait() == 0
+        except:
+            return False
+
+    @staticmethod
+    def url_git_get_name(url):
+        result = urllib.parse.urlparse(url)
+        name = Path(result.path).name
+        if name.endswith('.git'):
+            return name[:-4]
+        return name
+
+    @staticmethod
+    def url_is_url(url):
+        try:
+            result = urllib.parse.urlparse(url)
+            return result.scheme in ['http', 'https']
+        except:
+            raise
+            return False
+
+    class PathType(Enum):
+        GIT  = 1
+        URL  = 2
+        FILE = 3
+
+    @staticmethod
+    def path_get_type(path):
+        if PatchboxModuleManager.url_is_git(path):
+            return PatchboxModuleManager.PathType.GIT
+        if PatchboxModuleManager.url_is_url(path):
+            return PatchboxModuleManager.PathType.URL
+        return PatchboxModuleManager.PathType.FILE
+
     def install(self, path):
+        pathType = PatchboxModuleManager.path_get_type(path)
+
         tmp_dir = self.tmp_path
-        tar_file_path = None
-        zip_file_path = None
         module_name = None
 
-        if os.path.isdir(path):
-            raise ModuleManagerError(
-                'module file can\'t be a directory: {}'.format(path))
+        if pathType == PatchboxModuleManager.PathType.GIT:
+            module_name = PatchboxModuleManager.url_git_get_name(path)
+            subprocess.call(['git', 'clone', path, module_name], cwd=self.tmp_path)
+        elif pathType in [PatchboxModuleManager.PathType.URL, PatchboxModuleManager.PathType.FILE]:
+            file = None
+            if pathType == PatchboxModuleManager.PathType.URL:
+                r = requests.get(path)
+                if r.status_code == 200:
+                    file = tempfile.NamedTemporaryFile()
+                    file.write(r.content)
+                    file.flush()
+                    path = file.name
+                else:
+                    raise ModuleManagerError('{} returned status code {}'.format(path, r.status_code))
+            else:
+                if not os.path.exists(path):
+                    raise ModuleManagerError('{} does not exist'.format(path))
 
-        if tarfile.is_tarfile(path):
-            tar_file_path = path
+            tar_file_path = None
+            zip_file_path = None
 
-        if zipfile.is_zipfile(path):
-            zip_file_path = path
+            if os.path.isdir(path):
+                raise ModuleManagerError(
+                    'module file can\'t be a directory: {}'.format(path))
 
-        if not tar_file_path and not zip_file_path:
-            raise ModuleManagerError(
-                '{} is not a valid file type: *.tar and *.zip files are supported'.format(path))
+            if tarfile.is_tarfile(path):
+                tar_file_path = path
 
-        print('Manager: extracting {} to {}'.format(path, tmp_dir))
-        try:
-            if tar_file_path:
-                tar_file = tarfile.open(tar_file_path)
-                tar_file.extractall(path=tmp_dir)
-                tar_file.close()
+            if zipfile.is_zipfile(path):
+                zip_file_path = path
 
-            if zip_file_path:
-                zip_file = ZipFileWithPermissions(zip_file_path, 'r')
-                zip_file.extractall(tmp_dir)
-                zip_file.close()
+            if not tar_file_path and not zip_file_path:
+                raise ModuleManagerError(
+                    '{} is not a valid file type: *.tar and *.zip files are supported'.format(path))
 
-            files = glob.glob(tmp_dir + '*')
+            print('Manager: extracting {} to {}'.format(path, tmp_dir))
+            try:
+                if tar_file_path:
+                    tar_file = tarfile.open(tar_file_path)
+                    tar_file.extractall(path=tmp_dir)
+                    tar_file.close()
+
+                if zip_file_path:
+                    zip_file = ZipFileWithPermissions(zip_file_path, 'r')
+                    zip_file.extractall(tmp_dir)
+                    zip_file.close()
+
+                files = glob.glob(tmp_dir + '*')
             
-            if len(files) > 1 or not os.path.isdir(files[0]):
-                raise Exception
+                if len(files) > 1 or not os.path.isdir(files[0]):
+                    raise Exception
 
-            module_name = files[0].split('/')[-1]
-            print('Manager: {}.module found'.format(module_name))
-        except:
-            raise ModuleManagerError(
-                '{} module extraction failed'.format(path), remove_dir=tmp_dir)
-        
+                module_name = files[0].split('/')[-1]
+                print('Manager: {}.module found'.format(module_name))
+            except:
+                raise ModuleManagerError(
+                    '{} module extraction failed'.format(path), remove_dir=tmp_dir)
+
         module = self.get_module_by_path(os.path.join(tmp_dir, module_name))
 
         if not isinstance(module, PatchboxModule):
@@ -538,6 +605,7 @@ class PatchboxModuleManager(object):
             print('Manager: no install script declared for {}.module'.format(module.name))
         self.state.set('installed', True, module.path)
         self.state.set('version', module.version, module.path)
+        print('Module name: {}'.format(module.name))
 
     def activate(self, module, autolaunch=True, autoinstall=False):
         if not self.state.get('installed', module.path):
