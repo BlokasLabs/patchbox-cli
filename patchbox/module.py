@@ -224,7 +224,7 @@ class PatchboxModuleManager(object):
         self.imp_path = os.path.join(self.path, 'imported/')
         self.tmp_path = self.__class__.PATCHBOX_MODULE_TMP_FOLDER
         if not os.path.isdir(self.tmp_path):
-            os.mkdir(self.tmp_path)
+            os.makedirs(self.tmp_path)
         self.state = PatchboxModuleStateManager()
         self._service_manager = service_manager or self.__class__.DEFAULT_SERVICE_MANAGER()
         self._module_paths = None
