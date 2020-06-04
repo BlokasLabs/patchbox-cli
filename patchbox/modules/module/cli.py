@@ -5,6 +5,7 @@ from patchbox.utils import do_group_menu, do_ensure_param, do_go_back_if_ineract
 from patchbox.module import PatchboxModuleManager, ModuleNotFound, ModuleNotInstalled, ModuleError, ModuleManagerError
 from patchbox.views import do_msgbox, do_yesno, do_menu, do_inputbox
 from patchbox.utils import do_go_back_if_ineractive, run_interactive_cmd
+from patchbox.service import PatchboxService
 
 
 def get_module_by_name(ctx, name, silent=False):
@@ -139,9 +140,11 @@ def restart(ctx):
     if not active_path:
         return
     module = ctx.obj.get_active_module()
+    manager = ctx.obj
+    if not isinstance(manager, PatchboxModuleManager):
+        manager = PatchboxModuleManager()
     try:
-        ctx.obj.deactivate()
-        ctx.obj.activate(module)
+        manager._service_manager.restart_unit(PatchboxService('patchbox-init.service'))
     except (ModuleManagerError, ModuleNotInstalled) as err:
         raise click.ClickException(str(err))
 
@@ -218,6 +221,6 @@ def config(ctx):
         
         close, value = do_yesno('Do you want to launch now?')
         if close == 0:
-            manager.launch(module, arg=arg)
+            manager._service_manager.restart_unit(PatchboxService('patchbox-init.service'))
 
     do_go_back_if_ineractive(ctx, steps=2)

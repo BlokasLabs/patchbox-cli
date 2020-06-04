@@ -402,11 +402,9 @@ class PatchboxModuleManager(object):
 
         try:
             if arg:
-                subprocess.Popen(['sh', os.path.join(module.path, module.has_launch), arg],
-                                 stdout=DEVNULL, stderr=DEVNULL)
+                subprocess.Popen(['sh', os.path.join(module.path, module.has_launch), arg])
             else:
-                subprocess.Popen(['sh', os.path.join(module.path, module.has_launch)],
-                                 stdout=DEVNULL, stderr=DEVNULL)
+                subprocess.Popen(['sh', os.path.join(module.path, module.has_launch)])
         except Exception as err:
             raise ModuleError(
                 'failed to launch {}.module {}'.format(module.name, err))
@@ -428,8 +426,7 @@ class PatchboxModuleManager(object):
     def _stop_module(self, module):
         if module.has_stop:
             try:
-                subprocess.Popen(['sh', module.path + module.has_stop],
-                                 stdout=DEVNULL, stderr=DEVNULL)
+                subprocess.Popen(['sh', module.path + module.has_stop])
             except:
                 raise ModuleManagerError(
                     'failed to stop {}.module'.format(module.name))
