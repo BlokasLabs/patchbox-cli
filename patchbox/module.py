@@ -371,7 +371,25 @@ class PatchboxModuleManager(object):
             print('Manager: ERROR: {}'.format(error))
             self._stop_module(module)
 
+    def _fixup_service(self, module):
+        # Restart module's services if the modules they depend on got started later.
+
+        maximumTimestamp = 0
+        if module.get_system_services():
+            for service in module.get_system_services():
+                ts = self._service_manager.get_unit_start_timestamp(service)
+                maximumTimestamp = ts if ts > maximumTimestamp else maximumTimestamp
+
+        if module.get_module_services():
+            for service in module.get_module_services():
+                ts = self._service_manager.get_unit_start_timestamp(service)
+                if ts < maximumTimestamp:
+                    print('Restarting service {} which got started before services it depends on'.format(service.name))
+                    self._service_manager.restart_unit(service)
+
     def _launch_module(self, module, arg=None):
+        self._fixup_service(module)
+
         if not module.has_launch:
             return
 

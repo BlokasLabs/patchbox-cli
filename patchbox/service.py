@@ -170,6 +170,16 @@ class PatchboxServiceManager(object):
         except KeyError:
             return False
 
+    def get_unit_start_timestamp(self, pservice):
+        properties = self._get_unit_properties(pservice, self.UNIT_INTERFACE)
+        if properties is None:
+            return False
+        try:
+            state = properties["ActiveEnterTimestampMonotonic"]
+            return state
+        except KeyError:
+            return 0
+
     def is_active(self, pservice):
         unit_state = self.get_active_state(pservice)
         return unit_state == b"active"
