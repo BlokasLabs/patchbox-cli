@@ -66,6 +66,10 @@ class PatchboxServiceManager(object):
             raise ServiceError(str(err))
 
     def enable_start_unit(self, pservice, mode="replace"):
+        get_enabled = self.get_enabled(pservice)
+        if get_enabled == 'masked':
+            print('Skipping enabling {}, because it is masked. Unmask it by running `sudo systemctl unmask {}`'.format(pservice.name, pservice.name))
+            return True
         is_active = self.is_active(pservice)
         if not is_active:
             self.enable_unit(pservice)
@@ -180,6 +184,9 @@ class PatchboxServiceManager(object):
         except KeyError:
             return 0
 
+    def get_enabled(self, pservice):
+        return self._get_unit_file_state(pservice)
+
     def is_active(self, pservice):
         unit_state = self.get_active_state(pservice)
         return unit_state == b"active"
@@ -208,6 +215,16 @@ class PatchboxServiceManager(object):
             return result
         except KeyError:
             return False
+
+    def _get_unit_state(self, pservice):
+        interface = self._get_interface()
+        if interface is None:
+            return None
+        try:
+            return interface.GetUnitFileState(pservice.name)
+        except dbus.exceptions.DBusException as error:
+            print(error)
+            return None
 
     def _get_unit_properties(self, pservice, unit_interface):
         interface = self._get_interface()
