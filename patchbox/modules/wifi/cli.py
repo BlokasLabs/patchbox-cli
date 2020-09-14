@@ -411,9 +411,8 @@ def update_hs_config(param, value):
     with open(settings.HS_CFG, 'r') as f:
         data = f.readlines()
         for i, line in enumerate(data):
-            line = line.decode('utf-8')
             if line.startswith(param):
-                data[i] = param + '=' + value + '\n'
+                data[i] = param + '=' + str(value) + '\n'
                 break
     with open(settings.HS_CFG, 'w') as f:
         f.writelines(data)
