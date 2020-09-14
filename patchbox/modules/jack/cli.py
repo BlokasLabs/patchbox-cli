@@ -165,6 +165,10 @@ def status():
 @click.pass_context
 def config(ctx, card, rate, buffer, period):
     """Update Jack service settings"""
+
+    if card is None and rate is None and buffer is None and period is None:
+        ctx.meta['interactive'] = True
+
     if not jack_installed():
         raise click.ClickException('Jack software not found!')
     card = do_ensure_param(ctx, 'card')

@@ -192,6 +192,10 @@ def actions(ctx):
 @click.pass_context
 def assign(ctx, interaction, action):
     """Assign different Button interaction to different actions"""
+
+    if interaction is None or action is None:
+        ctx.meta['interactive'] = True
+
     if not ctx.obj.is_supported():
         raise click.ClickException('Button software not found!')
 

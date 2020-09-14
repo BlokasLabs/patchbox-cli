@@ -426,6 +426,10 @@ def update_hs_config(param, value):
 @click.pass_context
 def hotspot_config(ctx, name, channel, password):
     """Change WiFi hotspot settings"""
+
+    if name is None and channel is None and password is None:
+        ctx.meta['interactive'] = True
+
     if not is_wifi_supported():
         raise click.ClickException('WiFi interface not found!')
     name = do_ensure_param(ctx, 'name')
@@ -441,4 +445,3 @@ def hotspot_config(ctx, name, channel, password):
         do_hotspot_disable()
         do_hotspot_enable()
     do_go_back_if_ineractive(ctx, silent=True)
-

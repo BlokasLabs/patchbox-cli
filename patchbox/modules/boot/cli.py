@@ -16,6 +16,10 @@ def cli(ctx):
 @click.pass_context
 def environment(ctx, option):
     """Choose Boot environment (Desktop or Console)"""
+
+    if options is None:
+        ctx.meta['interactive'] = True
+
     option = do_ensure_param(ctx, 'option')
     if option == 'desktop':
         subprocess.call([os.path.join(os.path.dirname(os.path.realpath(__file__)), 'scripts/set_boot_to_desktop.sh')])
