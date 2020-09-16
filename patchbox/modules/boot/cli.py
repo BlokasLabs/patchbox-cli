@@ -17,7 +17,7 @@ def cli(ctx):
 def environment(ctx, option):
     """Choose Boot environment (Desktop or Console)"""
 
-    if options is None:
+    if option is None:
         ctx.meta['interactive'] = True
 
     option = do_ensure_param(ctx, 'option')
