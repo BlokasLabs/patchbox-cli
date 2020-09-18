@@ -23,6 +23,10 @@ setup(
 				'scripts/update.sh'
 			],
 		},
+	data_files=[
+		('share/applications', ['patchbox-init.desktop', 'patchbox-stop.desktop']),
+		('/etc/xdg/autostart', ['patchbox-init.desktop'])
+	],
 	entry_points='''
 		[console_scripts]
 		patchbox-config=patchbox.cli:cli
