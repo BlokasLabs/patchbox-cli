@@ -71,6 +71,7 @@ class PatchboxModule(object):
         self.description = self.data.get('description')
         self.version = self.data.get('version')
         self.autolaunch = self.get_autolaunch_mode()
+        self.is_desktop = self.data.get('is_desktop', False)
 
         self._system_services_validated = False
         self._module_services_validated = False
@@ -337,10 +338,12 @@ class PatchboxModuleManager(object):
             return None
         return path
 
-    def init(self):
+    def init(self, is_user):
+        # init is triggered from both patchbox-init.service and patchbox-init.desktop - init the module in desktop mode only if user is set, via patchbox-init.desktop,
+        # otherwise, init the module only if user is NOT set from patchbox-init.sevice context.
         module = self.get_active_module()
-        if module:
-            self.activate(module, autolaunch=True, autoinstall=False)
+        if module and module.is_desktop == is_user:
+            self.activate(module, autolaunch=True, autoinstall=False, update_env=False)
 
     def launch(self, module, arg=None):
         if not self.state.get('installed', module.path):
@@ -428,7 +431,7 @@ class PatchboxModuleManager(object):
                 'failed to launch {}.module {}'.format(module.name, err))
         print('Manager: {}.module launched'.format(module.name))
 
-    def stop(self):
+    def stop(self, is_user):
         active_path = self.get_active_module_path()
         if not active_path:
             return
@@ -436,15 +439,19 @@ class PatchboxModuleManager(object):
         active = self.get_module_by_path(active_path)
 
         if active.has_stop:
-            self._stop_module(active)
+            self._stop_module(active, is_user)
         else:
             raise ModuleManagerError(
                 '{}.module does not support stop command'.format(active.name))
 
-    def _stop_module(self, module):
+    def _stop_module(self, module, is_user=False):
         if module.has_stop:
             try:
-                subprocess.Popen(['sh', module.path + module.has_stop])
+                if not module.is_desktop or is_user:
+                    subprocess.Popen(['sh', module.path + module.has_stop])
+                else:
+                    print(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'modules/module/scripts/patchbox_stop_as_user.sh'))
+                    subprocess.call([os.path.join(os.path.dirname(os.path.realpath(__file__)), 'modules/module/scripts/patchbox_stop_as_user.sh'), module.path + module.has_stop])
             except:
                 raise ModuleManagerError(
                     'failed to stop {}.module'.format(module.name))
@@ -622,7 +629,7 @@ class PatchboxModuleManager(object):
         self.state.set('version', module.version, module.path)
         print('Module name: {}'.format(module.name))
 
-    def activate(self, module, autolaunch=True, autoinstall=False):
+    def activate(self, module, autolaunch=True, autoinstall=False, update_env=True, is_user=False):
         if not self.state.get('installed', module.path):
             if not autoinstall:
                 raise ModuleNotInstalled(module.name)
@@ -636,7 +643,7 @@ class PatchboxModuleManager(object):
             self._deactivate_module(active)
 
         try:
-            self._activate_module(module)
+            self._activate_module(module, update_env)
         except (ServiceError, ModuleError) as error:
             print('Manager: ERROR: {}'.format(error))
             self._deactivate_module(module)
@@ -644,12 +651,12 @@ class PatchboxModuleManager(object):
 
         if module.autolaunch and autolaunch:
             try:
-                self._launch_module(module)
+                self._launch_module(module, is_user)
             except (ServiceError, ModuleError, ModuleArgumentError) as error:
                 print('Manager: ERROR: {}'.format(error))
                 self._stop_module(module)
 
-    def _activate_module(self, module):
+    def _activate_module(self, module, update_env):
         if module.get_system_services():
             for service in module.get_system_services():
                 self._service_manager.enable_start_unit(service)
@@ -662,7 +669,8 @@ class PatchboxModuleManager(object):
                     print('Manager: {} auto_start {}'.format(
                         service.name, service.auto_start))
 
-        self.state.set_active_module(module.path)
+        if update_env:
+            self.state.set_active_module(module.path)
         print('Manager: {}.module activated'.format(module.name))
 
     def deactivate(self):

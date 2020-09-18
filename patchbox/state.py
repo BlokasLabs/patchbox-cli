@@ -2,12 +2,12 @@ import json
 import os
 import dbus
 from patchbox.environment import PatchboxEnvironment as penviron
-
+from patchbox import settings
 
 class PatchboxModuleStateManager(object):
 
-    DEFAULT_STATE_DIR = '/root/.patchbox/'
-    DEFAULT_STATE_FILE = 'state.json'
+    STATE_DIR = settings.PATCHBOX_STATE_DIR
+    STATE_FILE = settings.PATCHBOX_STATE_FILE
 
     @staticmethod
     def init_state_file(path):
@@ -16,11 +16,11 @@ class PatchboxModuleStateManager(object):
                 {'type': 'PatchboxModuleManagerStateFile', 'modules': {}}, f)
 
     def __init__(self, path=None):
-        self.path = path or self.__class__.DEFAULT_STATE_DIR + \
-            self.__class__.DEFAULT_STATE_FILE
+        self.path = path or self.__class__.STATE_DIR + \
+            self.__class__.STATE_FILE
         if not os.path.isfile(self.path):
-            if not os.path.exists(self.__class__.DEFAULT_STATE_DIR):
-                os.makedirs(self.__class__.DEFAULT_STATE_DIR)
+            if not os.path.exists(self.__class__.STATE_DIR):
+                os.makedirs(self.__class__.STATE_DIR)
             self.init_state_file(self.path)
             with open(self.path, 'w') as f:
                 json.dump(

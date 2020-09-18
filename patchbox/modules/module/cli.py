@@ -1,12 +1,18 @@
 import os
 import click
 import json
+import subprocess
 from patchbox.utils import do_group_menu, do_ensure_param, do_go_back_if_ineractive, get_system_service_property
 from patchbox.module import PatchboxModuleManager, ModuleNotFound, ModuleNotInstalled, ModuleError, ModuleManagerError
 from patchbox.views import do_msgbox, do_yesno, do_menu, do_inputbox
 from patchbox.utils import do_go_back_if_ineractive, run_interactive_cmd
 from patchbox.service import PatchboxService
 
+def start_or_restart_module(manager, module):
+    if module.is_desktop:
+        subprocess.call([os.path.join(os.path.dirname(os.path.realpath(__file__)), 'scripts/patchbox_init_as_user.sh')])
+    else:
+        manager._service_manager.restart_unit(PatchboxService('patchbox-init.service'))
 
 def get_module_by_name(ctx, name, silent=False):
     try:
@@ -33,7 +39,7 @@ def init(ctx):
     """Initiate manager (System)"""
     manager = ctx.obj or PatchboxModuleManager()
     try:
-        manager.init()
+        manager.init(ctx.meta['is_user'])
     except (ModuleManagerError, ModuleError) as err:
         raise click.ClickException(str(err))
 
@@ -111,7 +117,7 @@ def launch(ctx, name, arg):
 def stop(ctx):
     """Stop active module"""
     try:
-        ctx.obj.stop()
+        ctx.obj.stop(ctx.meta['is_user'])
     except ModuleManagerError as err:
         raise click.ClickException(str(err))
 
@@ -127,9 +133,12 @@ def activate(ctx, name, arg, autolaunch, autoinstall):
     name = do_ensure_param(ctx, 'name')
     module = get_module_by_name(ctx, name)
     try:
-        ctx.obj.activate(module, autolaunch=autolaunch, autoinstall=autoinstall)
+        ctx.obj.activate(module, autolaunch=False, autoinstall=autoinstall)
     except (ModuleManagerError, ModuleNotInstalled) as err:
         raise click.ClickException(str(err))
+
+    if autolaunch:
+        start_or_restart_module(ctx.obj, module)
 
 
 @cli.command()
@@ -144,7 +153,7 @@ def restart(ctx):
     if not isinstance(manager, PatchboxModuleManager):
         manager = PatchboxModuleManager()
     try:
-        manager._service_manager.restart_unit(PatchboxService('patchbox-init.service'))
+        start_or_restart_module(manager, module)
     except (ModuleManagerError, ModuleNotInstalled) as err:
         raise click.ClickException(str(err))
 
@@ -156,13 +165,13 @@ def config(ctx):
     manager = ctx.obj
     if not isinstance(manager, PatchboxModuleManager):
         manager = PatchboxModuleManager()
-    
+
     options = [{'value': module.path, 'title': '{}: {} v{}'.format(module.name, module.description, module.version)} for module in manager.get_all_modules()]
     options = sorted(options, key=lambda k: k.get('title')) 
     options.append({'value': 'none', 'title': 'none: Default Patchbox OS environment'})
-    
+
     close, value = do_menu('Choose a module:', options, cancel='Cancel')
-    
+
     if close:
         do_go_back_if_ineractive(ctx, steps=2, silent=True)
         return
@@ -185,7 +194,7 @@ def config(ctx):
 
     if module.autolaunch:
         arg = None
-        
+
         if module.autolaunch == 'auto':
             pass
 
@@ -196,14 +205,14 @@ def config(ctx):
                 manager._set_autolaunch_argument(module, None)
                 do_go_back_if_ineractive(ctx, steps=2)
                 return
-        
+
         if module.autolaunch == 'argument':
             close, arg = do_inputbox('Enter an argument for autolaunch on boot')
             if close:
                 manager._set_autolaunch_argument(module, None)
                 do_go_back_if_ineractive(ctx, steps=2)
                 return
-        
+
         if module.autolaunch == 'path':
             while True:
                 close, arg = do_inputbox('Enter a path for autolaunch on boot')
@@ -215,12 +224,10 @@ def config(ctx):
                 if os.path.isfile(arg) or os.path.isdir(arg):
                     break
                 do_msgbox('Argument must be a valid file path')
-        
+
         if arg:
-            manager._set_autolaunch_argument(module, arg)            
-        
-        close, value = do_yesno('Do you want to launch now?')
-        if close == 0:
-            manager._service_manager.restart_unit(PatchboxService('patchbox-init.service'))
+            manager._set_autolaunch_argument(module, arg)
+
+        start_or_restart_module(manager, module)
 
     do_go_back_if_ineractive(ctx, steps=2)

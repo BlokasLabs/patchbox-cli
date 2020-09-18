@@ -7,7 +7,6 @@ import click
 from patchbox import views
 from click.termui import prompt, confirm
 from patchbox.views import do_msgbox, do_yesno
-from dotenv import load_dotenv
 
 class PatchboxChoice(click.ParamType):
 	"""Dictionary support for click.Choice"""
@@ -108,18 +107,9 @@ modules_folder = os.path.abspath(
 class PatchboxHomeGroup(click.MultiCommand):
 
 	def __init__(self, *args, **kwargs):
-		self.root_fix()
 		self.is_home = True
 		super(PatchboxHomeGroup, self).__init__(
 			invoke_without_command=True, *args, **kwargs)
-
-	def root_fix(self):
-		if os.getuid() != 0:
-			args = sys.argv
-			args.insert(0, 'sudo')
-			os.execvp('sudo', args)
-		else:
-			load_dotenv(dotenv_path='/etc/environment')
 
 	def list_commands(self, ctx):
 		rv = []

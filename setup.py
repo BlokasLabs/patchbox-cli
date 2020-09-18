@@ -15,6 +15,10 @@ setup(
 				'scripts/set_boot_to_console.sh',
 				'scripts/set_boot_to_desktop.sh'
 			],
+			'patchbox.modules.module': [
+				'scripts/patchbox_init_as_user.sh',
+				'scripts/patchbox_stop_as_user.sh'
+			],
 			'patchbox.modules.update': [
 				'scripts/update.sh'
 			],

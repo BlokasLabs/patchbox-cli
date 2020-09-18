@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Name=Patchbox Init
+Exec=/usr/bin/patchbox --user module init
+NoDisplay=true
