@@ -185,8 +185,13 @@ def do_group_menu(ctx, cancel=None, ok=None):
 								'description': ctx.command.get_command(ctx, command).__doc__})
 			if not cancel and ctx.parent:
 				cancel = 'Back'
+			description = ctx.command.help + ctx.meta.get('additional_description', '')
+			try:
+				del ctx.meta['additional_description']
+			except KeyError:
+				pass
 			close, output = views.do_menu(
-				ctx.command.help, options, ok=ok, cancel=cancel)
+				description, options, ok=ok, cancel=cancel)
 			if close:
 				go_home_or_exit(ctx)
 			if output:
@@ -244,6 +249,13 @@ def do_ensure_param(ctx, name):
 
 	return value
 
+def do_pause_if_interactive(ctx = None):
+	if not ctx:
+		ctx = click.get_current_context()
+	if ctx.meta.get('interactive'):
+		click.echo("\nPress any key to continue...", err=True)
+		click.getchar()
+		click.echo()
 
 def do_go_back_if_ineractive(ctx=None, silent=False, steps=1):
 	if not ctx:
