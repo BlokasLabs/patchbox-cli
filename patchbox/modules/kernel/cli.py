@@ -58,7 +58,7 @@ def get_hardware_info():
 		return None
 
 	model_id = (rev >> 4) & 0xff
-	mem_size = (rev >> 20) & 0x03
+	mem_size = (rev >> 20) & 0x07
 
 	return {
 		'rev_raw': rev,
