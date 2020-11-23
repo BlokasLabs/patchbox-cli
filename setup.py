@@ -22,6 +22,12 @@ setup(
 			'patchbox.modules.update': [
 				'scripts/update.sh'
 			],
+			'patchbox.modules.kernel': [
+				'scripts/backup_kernel.sh',
+				'scripts/install_kernel_reg.sh',
+				'scripts/install_kernel_rt.sh',
+				'scripts/restore_backedup_modules.sh'
+			]
 		},
 	data_files=[
 		('share/applications', ['patchbox-init.desktop', 'patchbox-stop.desktop']),
