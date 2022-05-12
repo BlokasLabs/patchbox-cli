@@ -31,7 +31,8 @@ setup(
 		},
 	data_files=[
 		('share/applications', ['patchbox-init.desktop', 'patchbox-stop.desktop']),
-		('/etc/xdg/autostart', ['patchbox-init.desktop'])
+		('/etc/xdg/autostart', ['patchbox-init.desktop']),
+		('share/patchbox-cli', ['version'])
 	],
 	entry_points='''
 		[console_scripts]
