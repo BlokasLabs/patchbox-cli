@@ -6,7 +6,7 @@ install_repo() {
 		git clone "$2" "$3"
 	else
 		echo "Updating $1 repository with latest stuff in $2..."
-		cd $3 && git -c user.name="apt-get" -c user.email="apt@get" stash && git pull
+		cd $3 && git -c user.name="apt-get" -c user.email="apt@get" stash && git pull --no-rebase
 	fi
 }
 
