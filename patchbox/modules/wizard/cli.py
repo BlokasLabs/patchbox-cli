@@ -44,7 +44,7 @@ def cli(ctx, postupdate):
     run_interactive_cmd(
         ctx, 
         command=boot_config, 
-        message="Let's decide which boot environment you want use. Desktop vs Console. \n\nYou can change this any time via 'patchbox > boot > environment' option.",
+        message="Let's decide which boot environment you want to use. Desktop vs Console. \n\nYou can change this any time via 'patchbox > boot > environment' option.",
         required=True
     )
     run_interactive_cmd(
