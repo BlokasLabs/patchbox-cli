@@ -16,6 +16,7 @@ def root_fix():
     if os.getuid() != 0:
         args = sys.argv
         args.insert(0, 'sudo')
+        args.insert(1, '-E')
         os.execvp('sudo', args)
     else:
         load_dotenv(dotenv_path='/etc/environment')
