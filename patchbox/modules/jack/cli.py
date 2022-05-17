@@ -38,7 +38,7 @@ def jack_start():
 def jack_verify():
     try:
         click.echo('Waiting for Jack to boot...', err=True)
-        ec = subprocess.call(['jack_wait','-w','-t','5'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        ec = subprocess.call(['jack_wait','-w','-t','10'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if ec == 0:
             state = get_system_service_property('jack', 'SubState')
             if state == 'running':
