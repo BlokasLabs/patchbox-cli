@@ -18,10 +18,13 @@ def get_default_iface():
         return ifaces[0]
     return None
 
+def local_script_path(script):
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), 'scripts', script)
 
 def get_wifi_country():
     try:
-        return subprocess.check_output(['grep', 'country=', '/etc/wpa_supplicant/wpa_supplicant.conf']).split('=')[-1].strip().decode('utf-8')
+        country=subprocess.check_output([local_script_path('get_wifi_country.sh')]).decode('utf-8')
+        return country or 'unset'
     except:
         return 'unset'
 
@@ -53,8 +56,7 @@ def set_wifi_country(country):
     if not country or country.upper() not in [c.get('value') for c in get_wifi_countries()]:
         raise click.ClickException('Country code is not valid!')
     try:
-        cmd = subprocess.Popen(['wpa_cli', '-i', get_default_iface(),
-                                'set', 'country', country], stdout=subprocess.PIPE)
+        cmd = subprocess.Popen([local_script_path('get_wifi_country.sh'), country], stdout=subprocess.PIPE)
         click.echo('Country code set.', err=True)
     except:
         raise click.ClickException('Setting country code failed!')
@@ -94,44 +96,11 @@ def do_forget_all():
     for id in ids:
         do_forget(id)
 
-
 def do_connect(ssid, password):
     if not ssid:
         raise click.ClickException('Network name is invalid!')
-    try:
-        new_id = subprocess.check_output(
-            ['wpa_cli', '-i', get_default_iface(), 'add_network']).strip().decode('utf-8')
-        click.echo('Network added.', err=True)
-    except:
-        raise click.ClickException('Adding new network failed!')
-    if not new_id.isdigit():
-        click.echo('Wrong internal network ID.', err=True)
-        raise
-    try:
-        cmd = subprocess.check_output(['wpa_cli', '-i', get_default_iface(
-        ), 'set_network', '"{}"'.format(new_id), 'ssid', '"{}"'.format(ssid.strip())])
-        click.echo('Network name set.', err=True)
-    except:
-        raise click.ClickException('Setting network name failed!')
-    try:
-        if password is not None:
-            cmd = subprocess.check_output(['wpa_cli', '-i', get_default_iface(
-            ), 'set_network', '"{}"'.format(new_id), 'psk', '"{}"'.format(password)])
-            click.echo('Network password set.', err=True)
-        else:
-            cmd = subprocess.check_output(
-                ['wpa_cli', '-i', get_default_iface(), 'set_network', 'key_mgmt', 'NONE'])
-            click.echo('Empty password set.', err=True)
-    except:
-        raise click.ClickException('Setting network password failed!')
-    try:
-        cmd = subprocess.check_output(
-            ['wpa_cli', '-i', get_default_iface(), 'enable_network', '"{}"'.format(new_id)])
-        click.echo('Network enabled.', err=True)
-    except:
-        raise click.ClickException('Enabling network failed!')
-    do_save_config()
-
+    click.echo('Connecting to {}...'.format(ssid))
+    return subprocess.call([local_script_path('connect_wifi.sh'), ssid, password])
 
 def is_wifi_supported():
     return get_default_iface() is not None
@@ -224,13 +193,6 @@ def get_status():
     )
 
 
-def get_config():
-    try:
-        return subprocess.check_output(['cat', '/etc/wpa_supplicant/wpa_supplicant.conf']).strip().decode('utf-8')
-    except:
-        return None
-
-
 def get_ssids():
     click.echo('Network scan started.', err=True)
     try:
@@ -243,13 +205,14 @@ def get_ssids():
 
 def get_hs_config():
     items = []
-    with open(settings.HS_CFG, 'r') as f:
-        for line in f:
-            for p in ['ssid', 'wpa_passphrase', 'channel']:
-                if line.startswith(p):
-                    param = line.strip().split('=')
-                    items.append(
-                        {'title': param[0] + ': ' + param[1], 'key': param[0], 'value': param[1]})
+    lines = subprocess.check_output(
+        ['sudo', 'nmcli', '-s', 'c', 'show', 'pb-hotspot']).decode('utf-8')
+    for line in lines.splitlines():
+        for p in ['802-11-wireless.ssid:', '802-11-wireless-security.psk:']:
+            if line.startswith(p):
+                param = line.strip().split(':')
+                items.append(
+                    {'title': p + ': ' + param[1].strip(), 'key': param[0], 'value': param[1].strip()})
     return items
 
 
@@ -406,40 +369,30 @@ def hotspot_status():
         click.echo(line)
     do_go_back_if_ineractive()
 
+def set_hs_ssid(ssid):
+    subprocess.call([local_script_path('set_hs_ssid.sh'), ssid])
 
-def update_hs_config(param, value):
-    with open(settings.HS_CFG, 'r') as f:
-        data = f.readlines()
-        for i, line in enumerate(data):
-            if line.startswith(param):
-                data[i] = param + '=' + str(value) + '\n'
-                break
-    with open(settings.HS_CFG, 'w') as f:
-        f.writelines(data)
-
+def set_hs_password(password):
+    subprocess.call([local_script_path('set_hs_password.sh'), password])
 
 @hotspot.command('setup')
 @click.option('--name', help='Hotspot name (SSID)')
-@click.option('--channel', help='Hotspot channel (default=6)', default=6, type=int)
 @click.option('--password', help='Hotspot WiFi network password')
 @click.pass_context
-def hotspot_config(ctx, name, channel, password):
+def hotspot_config(ctx, name, password):
     """Change WiFi hotspot settings"""
 
-    if name is None and channel is None and password is None:
+    if name is None and password is None:
         ctx.meta['interactive'] = True
 
     if not is_wifi_supported():
         raise click.ClickException('WiFi interface not found!')
     name = do_ensure_param(ctx, 'name')
-    channel = do_ensure_param(ctx, 'channel')
     password = do_ensure_param(ctx, 'password')
     if name:
-        update_hs_config('ssid', name)
-    if channel:
-        update_hs_config('channel', channel)
+        set_hs_ssid(name)
     if password:
-        update_hs_config('wpa_passphrase', password)
+        set_hs_password(password)
     if is_hotspot_active():
         do_hotspot_disable()
         do_hotspot_enable()
