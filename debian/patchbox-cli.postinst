@@ -13,3 +13,5 @@ install_repo() {
 install_repo patchbox-modules https://github.com/BlokasLabs/patchbox-modules /usr/local/patchbox-modules
 
 #DEBHELPER#
+
+exit 0

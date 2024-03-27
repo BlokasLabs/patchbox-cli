@@ -1,4 +1,4 @@
-from os import environ
+from os import environ, path, symlink, remove, readlink
 import dbus
 from patchbox.environment import PatchboxEnvironment as penviron
 
@@ -8,6 +8,51 @@ class ServiceError(Exception):
 class ServiceManagerError(Exception):
     pass
 
+class PatchboxDefaultServiceHandler:
+    @staticmethod
+    def handle_activate(service):
+        if service.environ_param:
+            if penviron.get(service.environ_param, debug=False) != service.environ_value:
+                penviron.set(service.environ_param, service.environ_value)
+                return True
+        return False
+
+    @staticmethod
+    def handle_deactivate(service):
+        if service.environ_param:
+            penviron.set(service.environ_param, None)
+            return True
+        return False
+
+class PatchboxPisoundBtnServiceHandler:
+    PISOUND_CONF_PATH='/etc/pisound.conf'
+    PISOUND_DEFAULT_CONF_PATH='/usr/local/etc/pisound.conf'
+
+    @staticmethod
+    def update_symlink(src, dst):
+        print('{} -> {}'.format(dst, src))
+        dst_exists = path.exists(dst)
+        if not dst_exists or (not path.islink(dst) or readlink(dst) != src):
+            if dst_exists:
+                remove(dst)
+            symlink(src, dst)
+            return True
+        return False
+
+    @staticmethod
+    def handle_activate(service):
+        print('Special handling of activate for button!')
+        return PatchboxPisoundBtnServiceHandler.update_symlink(service.environ_value, PatchboxPisoundBtnServiceHandler.PISOUND_CONF_PATH)
+
+    @staticmethod
+    def handle_deactivate(service):
+        print('Special handling of deactivate for button!')
+        return PatchboxPisoundBtnServiceHandler.update_symlink(PatchboxPisoundBtnServiceHandler.PISOUND_DEFAULT_CONF_PATH, PatchboxPisoundBtnServiceHandler.PISOUND_CONF_PATH)
+
+def get_handler_for_service(service):
+    if service.name == 'pisound-btn.service':
+        return PatchboxPisoundBtnServiceHandler()
+    return PatchboxDefaultServiceHandler()
 
 class PatchboxService(object):
 
@@ -73,15 +118,12 @@ class PatchboxServiceManager(object):
         is_active = self.is_active(pservice)
         if not is_active:
             self.enable_unit(pservice)
-            if pservice.environ_param:
-                penviron.set(pservice.environ_param, pservice.environ_value)
+            get_handler_for_service(pservice).handle_activate(pservice)
             self.start_unit(pservice, mode=mode)
             return True
         else:
-            if pservice.environ_param:
-                if penviron.get(pservice.environ_param, debug=False) != pservice.environ_value:
-                    penviron.set(pservice.environ_param, pservice.environ_value)     
-                    self.restart_unit(pservice, mode=mode)
+            if get_handler_for_service(pservice).handle_activate(pservice):
+                self.restart_unit(pservice, mode=mode)
         return True
 
     def stop_disable_unit(self, pservice):
@@ -97,17 +139,15 @@ class PatchboxServiceManager(object):
             return False
         try:
             interface.StopUnit(pservice.name, mode)
-            if pservice.environ_param:
-                penviron.set(pservice.environ_param, pservice.environ_value)
+            get_handler_for_service(pservice).handle_activate(pservice)
             print('Service: {} stopped'.format(pservice.name))
             return True
         except dbus.exceptions.DBusException as err:
             raise ServiceError(str(err))
     
     def reset_unit_environment(self, pservice):
-        if pservice.environ_param:
-            penviron.set(pservice.environ_param, None)
-            self.restart_unit(pservice)      
+        if get_handler_for_service(pservice).handle_deactivate(pservice):
+            self.restart_unit(pservice)
 
     def restart_unit(self, pservice, mode="replace"):
         interface = self._get_interface()
