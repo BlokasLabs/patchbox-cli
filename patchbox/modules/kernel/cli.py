@@ -14,9 +14,9 @@ def get_kernel_name():
 	return subprocess.check_output(['uname', '-a']).decode('utf-8')
 
 def is_realtime():
-	return subprocess.call(['sh', '-c', 'uname -a | grep -q PREEMPT']) == 0
+	return subprocess.call(['sh', '-c', 'uname -a | grep -q PREEMPT_RT']) == 0
 
-# https://www.raspberrypi.org/documentation/hardware/raspberrypi/revision-codes/README.md
+# https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#raspberry-pi-revision-codes
 def code_to_mem_size_str(code):
 	return {
 		0: '256MB',
@@ -45,8 +45,12 @@ def code_to_model_str(code):
 		0x0f: 'Internal use only',
 		0x10: 'CM3+',
 		0x11: '4B',
+		0x12: 'Zero 2 W',
 		0x13: '400',
 		0x14: 'CM4',
+		0x15: 'CM4S',
+		0x16: 'Internal use only',
+		0x17: '5',
 	}.get(code, 'unknown')
 
 def get_hardware_info():
@@ -86,15 +90,12 @@ def install_rt(ctx, yes):
 
 		compatible = True
 
-		if info['mem_str'] == '8GB':
-			compatible = False
-
-		if info['model_str'] in [ 'Zero', 'Zero W', 'A', 'B', 'A+', 'B+' ]:
+		if info['model_str'] in [ 'Zero', 'Zero W', 'A', 'B', 'A+', 'B+', '2B', '3B', '3B+' ]:
 			compatible = False
 
 		current_system_str = 'Raspberry Pi ' + info['model_str'] + ' ' + info['mem_str']
 
-		message = "Please keep in mind that realtime kernel could be less stable and is not compatible with Pi Zero or Pi 4 8GB version.\n\n" + \
+		message = "Please keep in mind that realtime kernel could be less stable and is not compatible with Pi Zero, Pi 2B or Pi 3B(+) versions.\n\n" + \
 			"Your current system is " + current_system_str + "\n\n" + \
 			("It is known to be compatible with your system." if compatible else "It is NOT COMPATIBLE and your system may fail to boot or work properly.") + "\n\n" + \
 			"Continue?"

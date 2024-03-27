@@ -2,9 +2,7 @@
 
 SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 
-apt update
-$SCRIPT_DIR/backup_kernel.sh
-apt install --reinstall --yes raspberrypi-kernel-rt
-$SCRIPT_DIR/restore_backedup_modules.sh
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install --reinstall --yes linux-image-rpi-rt-v6 linux-image-rpi-rt-v7 linux-image-rpi-rt-v7l linux-image-rpi-rt-v8 linux-image-rpi-rt-2712
 
 echo "Reboot to activate the new kernel version. (run \`sudo reboot\`)"

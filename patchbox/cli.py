@@ -25,7 +25,7 @@ def root_fix():
 @click.option('--verbose', is_flag=True, help='Enables verbose mode.')
 @click.option('--interactive', is_flag=True, help='Enables interactive mode.')
 @click.option('--user', is_flag=True, help='Runs as current user instead of root', default=False)
-@click.version_option("1.3.3")
+@click.version_option("1.4.0")
 @click.pass_context
 def cli(ctx, verbose, interactive, user):
     """Patchbox Configuration Utility"""

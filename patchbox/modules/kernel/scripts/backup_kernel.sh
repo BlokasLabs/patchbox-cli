@@ -2,19 +2,23 @@
 
 current_version=$(uname -r | grep -oe [0-9]*\\.[0-9]*\\.[0-9]*)
 
+BACKUP_SRC=/boot/firmware
+BACKUP_DST=/boot/firmware/backup
+MODULE_BACKUP_DST="$BACKUP_DST/modules"
+
 echo Backing up kernel $current_version...
-mkdir -p /boot/backup
-for i in $(ls /boot/ | grep -e "kernel.*img\$"); do
-	cp -vp /boot/$i /boot/backup/$i
+mkdir -p "$BACKUP_DST"
+for i in $(ls "$BACKUP_SRC/" | grep -e "kernel.*img\$"); do
+	cp -vp "$BACKUP_SRC/$i" "$BACKUP_DST/$i"
 done
 
 echo Backing up device tree...
-cp -rpv /boot/*.dtb /boot/overlays /boot/backup/
+cp -rpv "$BACKUP_SRC/*.dtb" "$BACKUP_SRC/overlays" "$BACKUP_DST/"
 
 echo Backing up $current_version modules...
-rm -rf /root/.kernel_backup
-mkdir -p /root/.kernel_backup
+rm -rf "$MODULE_BACKUP_DST"
+mkdir -p "$MODULE_BACKUP_DST"
 for i in $(ls /lib/modules/ | grep $current_version); do
 	echo $i...
-	cp -rp /lib/modules/$i /root/.kernel_backup
+	cp -rp /lib/modules/$i "$MODULE_BACKUP_DST"
 done

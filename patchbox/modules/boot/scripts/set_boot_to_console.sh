@@ -1,17 +1,12 @@
-#!/bin/sh
+#!/bin/bash
 
-USER=${SUDO_USER:-$(who -m | awk '{ print $1 }')}
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../../scripts/import_raspi_config.sh"
 
-if [ "$1" = "autologin" ]; then
-	systemctl set-default multi-user.target
-	ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
-	cat > /etc/systemd/system/getty@tty1.service.d/autologin.conf << EOF
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin $USER --noclear %I \$TERM
-EOF
+if [ "$1" != "autologin" ]; then
+	BOOTOPT="B1"
 else
-	systemctl set-default multi-user.target
-	ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
-	rm -f /etc/systemd/system/getty@tty1.service.d/autologin.conf
+	BOOTOPT="B2"
 fi
+
+do_boot_behaviour $BOOTOPT
+echo OK
