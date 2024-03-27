@@ -1,0 +1,12 @@
+[Unit]
+Description=Patchbox Init
+After=getty@tty1.service
+
+[Service]
+Environment=HOME=/root
+EnvironmentFile=/etc/environment
+ExecStart=/usr/bin/patchbox module init
+Type=forking
+
+[Install]
+WantedBy=multi-user.target
