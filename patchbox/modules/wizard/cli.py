@@ -37,8 +37,8 @@ def cli(ctx, postupdate):
     run_interactive_cmd(
         ctx, 
         command=jack_config, 
-        message='Now pick the default system sound card. You may use external USB audio cards and HAT-type cards. \n\nIf your HAT card is not listed, most likely you have to enable it by editing /boot/firmware/config.txt and reboot,\nrefer to the support pages of your card.\n\nChoose OK and follow the instructions. This step is required. \n\nYou will be able to change these settings later via \'patchbox > jack > config\' option.',
-        error="It seems that the Jack server is busy or the settings provided are not supported by your sound card. \n\nLet's try again.",
+        message='Now pick the default system sound card. You may use external USB audio cards and HAT-type cards.\n\nIf your HAT card is not listed, most likely you have to enable it by editing /boot/firmware/config.txt and reboot, refer to the support pages of your card.\n\nChoose OK and follow the instructions. This step is required.\n\nYou will be able to change these settings later via \'patchbox > jack > config\' option.',
+        error="It seems that the Jack server is busy or the settings provided are not supported by your sound card.\n\nLet's try again.",
         required=True
     )
     run_interactive_cmd(

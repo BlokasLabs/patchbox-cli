@@ -115,7 +115,7 @@ def is_connected():
 
 def do_disconnect():
     try:
-        click.echo(subprocess.check_output(['wpa_cli', '-i', get_default_iface(),  'disconnect']), err=True)
+        click.echo(subprocess.check_output(['nmcli', 'device', 'down', get_default_iface()]), err=True)
         click.echo('Disconnected.', err=True)
     except:
         raise click.ClickException('Operation failed!')
@@ -139,16 +139,9 @@ def do_verify_connection(hotspot_fallback=True):
 
 
 def do_reconnect(hotspot_fallback=True):
-    networks = get_networks()
-    if len(networks) < 1:
-        raise click.ClickException('WiFi network config not found!')
     if is_hotspot_active():
         click.echo('Disabling WiFi hotspot.', err=True)
-        do_hotspot_disable(reconnect=False)
-    try:
-        subprocess.check_output(['wpa_cli', '-i', get_default_iface(), 'reconnect'])
-    except:
-        raise click.ClickException('Connection failed!')
+        do_hotspot_disable()
     do_verify_connection(hotspot_fallback=hotspot_fallback)
 
 
@@ -271,9 +264,10 @@ def scan():
 @cli.command()
 def reconnect():
     """Reconnect to default WiFi network"""
-    networks = get_networks()
-    if len(networks) < 1:
-        raise click.ClickException('WiFi network config not found!')
+    try:
+        subprocess.check_output(['nmcli', 'connection', 'up', 'ifname', get_default_iface()])
+    except:
+        pass
     do_reconnect()
     do_go_back_if_ineractive()
 
@@ -330,24 +324,16 @@ def hotspot_enable():
 
 def do_hotspot_enable():
     click.echo('Hotspot enable started.', err=True)
-    error, output = run_cmd(['sudo', 'systemctl', 'enable', 'wifi-hotspot'])
-    error, output = run_cmd(['sudo', 'systemctl', 'start', 'wifi-hotspot'])
+    error, output = run_cmd(['sudo', 'systemctl', 'enable', '--now', 'wifi-hotspot'])
     if not error:
         click.echo('Hotspot enabled.', err=True)
 
 
-def do_hotspot_disable(reconnect=True):
+def do_hotspot_disable():
     click.echo('Hotspot disable started.', err=True)
-    error, output = run_cmd(['sudo', 'systemctl', 'stop', 'wifi-hotspot'])
-    error, output = run_cmd(['sudo', 'systemctl', 'disable', 'wifi-hotspot'])
+    error, output = run_cmd(['sudo', 'systemctl', 'disable', '--now', 'wifi-hotspot'])
     if not error:
         click.echo('Hotspot disabled.', err=True)
-    if reconnect:
-        try:
-            do_reconnect(hotspot_fallback=False)
-        except:
-            click.echo('Failed to connect to default WiFi network.', err=True)
-            pass
 
 
 @hotspot.command('down')
