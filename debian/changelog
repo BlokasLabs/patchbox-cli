@@ -1,3 +1,9 @@
+patchbox-cli (1.4.0-2) bookworm; urgency=low
+
+  * Reboot handling in wizard.
+
+ -- Giedrius Trainavičius <giedrius@blokas.io>  Sun, 31 Mar 2024 12:29:30 +0100
+
 patchbox-cli (1.4.0-1) bookworm; urgency=low
 
   * Updated all functions for compatibility with bookworm.

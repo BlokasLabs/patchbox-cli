@@ -1,6 +1,7 @@
 import click
+import subprocess
 from patchbox.utils import run_interactive_cmd
-from patchbox.views import do_msgbox
+from patchbox.views import do_msgbox, do_yesno
 from patchbox.modules.jack.cli import config as jack_config
 from patchbox.modules.password.cli import cli as password_config
 from patchbox.modules.wifi.cli import connect as wifi_connect
@@ -59,4 +60,7 @@ def cli(ctx, postupdate):
         required=True
     )
 
-    do_msgbox("That's it!\n\nOnce again, you can re-run this wizard any time by typing 'patchbox' in a terminal window and choosing the 'wizard' option. \n\nSee ya!")
+    if not ctx.meta.get('reboot_required'):
+        do_msgbox("That's it!\n\nOnce again, you can re-run this wizard any time by typing 'patchbox' in a terminal window and choosing the 'wizard' option.\n\nSee ya!")
+    else:
+        do_msgbox("That's it!\n\nA system restart is required to activate the new boot behavior. You may do so by executing `sudo reboot`.\n\nOnce again, you can re-run this wizard any time by typing 'patchbox' in a terminal window and choosing the 'wizard' option.\n\nSee ya!")
