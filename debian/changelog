@@ -1,3 +1,9 @@
+patchbox-cli (1.4.0-3) bookworm; urgency=low
+
+  * Use bookworm specific patchbox-modules branch.
+
+ -- Giedrius Trainavičius <giedrius@blokas.io>  Tue, 02 Apr 2024 12:36:18 +0100
+
 patchbox-cli (1.4.0-2) bookworm; urgency=low
 
   * Reboot handling in wizard.
