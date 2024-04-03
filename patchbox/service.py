@@ -9,24 +9,24 @@ class ServiceManagerError(Exception):
     pass
 
 class PatchboxDefaultServiceHandler:
-    @staticmethod
-    def handle_activate(service):
+    def handle_activate(self, service):
         if service.environ_param:
             if penviron.get(service.environ_param, debug=False) != service.environ_value:
                 penviron.set(service.environ_param, service.environ_value)
                 return True
         return False
 
-    @staticmethod
-    def handle_deactivate(service):
+    def handle_deactivate(self, service):
         if service.environ_param:
             penviron.set(service.environ_param, None)
             return True
         return False
 
-class PatchboxPisoundBtnServiceHandler:
-    PISOUND_CONF_PATH='/etc/pisound.conf'
-    PISOUND_DEFAULT_CONF_PATH='/usr/local/etc/pisound.conf'
+class PatchboxSymbolicLinkConfHandler(PatchboxDefaultServiceHandler):
+    def __init__(self, conf_file, default_conf_file):
+        super().__init__()
+        self.conf_file = conf_file
+        self.default_conf_file = default_conf_file
 
     @staticmethod
     def update_symlink(src, dst):
@@ -39,19 +39,17 @@ class PatchboxPisoundBtnServiceHandler:
             return True
         return False
 
-    @staticmethod
-    def handle_activate(service):
-        print('Special handling of activate for button!')
-        return PatchboxPisoundBtnServiceHandler.update_symlink(service.environ_value, PatchboxPisoundBtnServiceHandler.PISOUND_CONF_PATH)
+    def handle_activate(self, service):
+        return PatchboxSymbolicLinkConfHandler.update_symlink(service.environ_value, self.conf_file)
 
-    @staticmethod
-    def handle_deactivate(service):
-        print('Special handling of deactivate for button!')
-        return PatchboxPisoundBtnServiceHandler.update_symlink(PatchboxPisoundBtnServiceHandler.PISOUND_DEFAULT_CONF_PATH, PatchboxPisoundBtnServiceHandler.PISOUND_CONF_PATH)
+    def handle_deactivate(self, service):
+        return PatchboxSymbolicLinkConfHandler.update_symlink(self.default_conf_file, self.conf_file)
 
 def get_handler_for_service(service):
     if service.name == 'pisound-btn.service':
-        return PatchboxPisoundBtnServiceHandler()
+        return PatchboxSymbolicLinkConfHandler('/etc/pisound.conf', '/usr/local/etc/pisound.conf')
+    elif service.name == 'amidiminder.service':
+        return PatchboxSymbolicLinkConfHandler('/etc/amidiminder.rules', '/etc/default/amidiminder.rules')
     return PatchboxDefaultServiceHandler()
 
 class PatchboxService(object):

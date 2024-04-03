@@ -1,3 +1,9 @@
+patchbox-cli (1.4.0-4) bookworm; urgency=low
+
+  * Config handler for amidiminder.service.
+
+ -- Giedrius Trainavičius <giedrius@blokas.io>  Wed, 03 Apr 2024 21:49:49 +0100
+
 patchbox-cli (1.4.0-3) bookworm; urgency=low
 
   * Use bookworm specific patchbox-modules branch.
