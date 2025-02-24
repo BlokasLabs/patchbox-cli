@@ -40,7 +40,7 @@ class PatchboxSymbolicLinkConfHandler(PatchboxDefaultServiceHandler):
         return False
 
     def handle_activate(self, service):
-        return PatchboxSymbolicLinkConfHandler.update_symlink(service.environ_value, self.conf_file)
+        return PatchboxSymbolicLinkConfHandler.update_symlink(service.environ_value or self.default_conf_file, self.conf_file)
 
     def handle_deactivate(self, service):
         return PatchboxSymbolicLinkConfHandler.update_symlink(self.default_conf_file, self.conf_file)

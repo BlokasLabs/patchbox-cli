@@ -1,3 +1,9 @@
+patchbox-cli (1.4.0-5) bookworm; urgency=low
+
+  * Fixed "TypeError: symlink: src should be string, bytes or os.PathLike, not NoneType"
+
+ -- Giedrius Trainavičius <giedrius@blokas.io>  Wed, 03 Apr 2024 21:49:49 +0100
+
 patchbox-cli (1.4.0-4) bookworm; urgency=low
 
   * Config handler for amidiminder.service.
