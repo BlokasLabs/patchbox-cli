@@ -1,3 +1,9 @@
+patchbox-cli (1.4.0-6) UNRELEASED; urgency=low
+
+  * Trixie edition rebuild.
+
+ -- Giedrius Trainavičius <giedrius@blokas.io>  Thu, 20 Nov 2025 23:18:19 +0200
+
 patchbox-cli (1.4.0-5) bookworm; urgency=low
 
   * Fixed "TypeError: symlink: src should be string, bytes or os.PathLike, not NoneType"
